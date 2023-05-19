@@ -55,6 +55,14 @@ impl LoopTNode {
     }
 }
 
+impl RefStmt {
+    fn my_nest(&self)-> LoopTNode {
+        // follow the parent pointers and return all enclosing loops 
+        //  as a LoopTNode
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use crate::{LoopTNode::*, RefStmt};
