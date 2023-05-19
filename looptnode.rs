@@ -6,8 +6,8 @@ pub enum LoopTNode {
     /// A single loop
     Loop {
         iv: String,
-        lb: fn(IterVec)->i32,
-        ub: fn(IterVec)->i32,
+        lb: LoopBound,
+        ub: LoopBound,
         // The two arguments are index and upper bound
         test: fn(i32, i32)->bool,
         step: fn(i32)->i32,
@@ -23,6 +23,11 @@ pub enum LoopTNode {
 
 pub type LTNodesRef = RefCell<Vec<Rc<LoopTNode>>>;
 pub type LTNodeWeakRef = RefCell<Weak<LoopTNode>>;
+
+pub enum LoopBound {
+    Fixed(i32),
+    Dynamic(fn(IterVec)->i32)
+}
 
 pub struct ArrRef {
     name: String,
