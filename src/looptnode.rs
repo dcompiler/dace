@@ -58,15 +58,15 @@ impl LoopTNode {
 
 impl RefStmt {
     fn my_nest(&self) -> LoopTNode {
-        // // follow the parent pointers and return all enclosing loops as a LoopTNode
-        // let mut parent = self.parent.borrow().upgrade();
-        // while let Some(p) = parent {
-        //     // let p = p.clone();
-        //     match *Rc::try_unwrap(p).unwrap_err() {
-        //         &RC::LoopTNode::Loop(_) => return p,
-        //         LoopTNode::Ref(_) => parent = p.parent.borrow().upgrade(),
-        //     }
-        // }
+        // follow the parent pointers and return all enclosing loops as a LoopTNode
+        let mut parent = self.parent.borrow().upgrade();
+        while let Some(p) = parent {
+            // let p = p.clone();
+            match p {
+                LoopTNode::Loop(_) => return p,
+                LoopTNode::Ref(_) => parent = p.parent.borrow().upgrade(),
+            }
+        }
         unreachable!("No enclosing loop found!")
 
     }
@@ -87,5 +87,7 @@ mod tests {
     }
 
     #[test]
-    fn matmul() {}
+    fn matmul() {
+
+    }
 }
