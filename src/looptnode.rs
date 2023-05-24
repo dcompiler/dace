@@ -3,8 +3,8 @@ use std::rc::{Rc, Weak};
 
 /// Each loop and statement is a node in a loop tree.
 pub struct LoopTNode {
-    stmt: Stmt,
-    pub parent: LTNodeWeakRef
+    pub stmt: Stmt,
+    parent: LTNodeWeakRef
 }
 
 pub enum Stmt {
@@ -56,9 +56,14 @@ impl Stmt {
         match self {
             //    The body of a loop is a vector of LoopTNode's, so we need to
             //    iterate over the vector and sum the sanity of each node.
-            Stmt::Loop(a_loop) => a_loop.body.borrow().iter().fold(0, |acc, x| acc + x.stmt.sanity()),
+            Stmt::Loop(a_loop) => a_loop.body.borrow().iter().fold(1, |acc, x| acc + x.stmt.sanity()),
             Stmt::Ref(_) => 1,
         }
+    }
+}
+
+impl LoopStmt {
+    fn extend_loop_body(&self, stmt_node: Rc<LoopTNode>) {
     }
 }
 
@@ -104,13 +109,42 @@ mod tests {
 	let s = RefStmt{ refs: vec![c.clone(), c, a, b] };
 	// creating loop k = 0, n { s_ref }
 	let s_ref = Rc::new(LoopTNode{ stmt: Stmt::Ref(s),
-					       parent: RefCell::new(Weak::new()) });
-	let k_loop = LoopStmt{ iv: "k".to_string(),
-			       lb: LoopBound::Fixed(0), ub: LoopBound::Fixed(n),
-			       // test: |k| k<n , step: |k| k+1,
-			       body: RefCell::new(vec![s_ref]) };
-	// officiating parent-child relationship
-	// (*k_loop.body)[0].borrow_mut().parent = RefCell::new(Rc::downgrade(Rc::new(k_loop)));
-	
+				       parent: RefCell::new(Weak::new()) });
+	let k_loop_stmt = LoopStmt{ iv: "k".to_string(),
+				    lb: LoopBound::Fixed(0), ub: LoopBound::Fixed(n),
+				    // test: |k| k<n , step: |k| k+1,
+				    body: RefCell::new(vec![s_ref]) };
+	let k_loop_ref = Rc::new(
+	    LoopTNode{ stmt: Stmt::Loop(k_loop_stmt),
+		       parent: RefCell::new(Weak::new())
+	    });
+	// officiating the parent-child relationship
+	if let Stmt::Loop(ref lp) = k_loop_ref.stmt {
+	    *(lp.body.borrow())[0].parent.borrow_mut() = Rc::downgrade(&k_loop_ref);
+	}
+	// creating loop j = 0, n
+	let j_loop_stmt = LoopStmt{ iv: "j".to_string(),
+				    lb: LoopBound::Fixed(0), ub: LoopBound::Fixed(n),
+				    body: RefCell::new(vec![Rc::clone(&k_loop_ref)]) };
+	let j_loop_ref = Rc::new(
+	    LoopTNode{ stmt: Stmt::Loop(j_loop_stmt),
+		       parent: RefCell::new(Weak::new())
+	    });
+	if let Stmt::Loop(ref lp) = j_loop_ref.stmt {
+	    *(lp.body.borrow())[0].parent.borrow_mut() = Rc::downgrade(&j_loop_ref);
+	}
+	// creating loop i = 0, n
+	let i_loop_stmt = LoopStmt{ iv: "i".to_string(),
+				    lb: LoopBound::Fixed(0), ub: LoopBound::Fixed(n),
+				    body: RefCell::new(vec![Rc::clone(&j_loop_ref)]) };
+	let i_loop_ref = Rc::new(
+	    LoopTNode{ stmt: Stmt::Loop(i_loop_stmt),
+		       parent: RefCell::new(Weak::new())
+	    });
+	if let Stmt::Loop(ref lp) = i_loop_ref.stmt {
+	    *(lp.body.borrow())[0].parent.borrow_mut() = Rc::downgrade(&i_loop_ref);
+	}
+
+	assert_eq!(i_loop_ref.stmt.sanity(), 4);
     }
 }
