@@ -173,4 +173,48 @@ mod tests {
 	// }
 
     }
+
+    #[test]
+    fn mat_transpose1() {
+        let n = 1024;
+        // for (int c0 = 0; c0 < n; c0 += 1)
+        // for (int c1 = 0; c1 < n; c1 += 1)
+        //   x1[c0] = (x1[c0] + (A[c0][c1] * y_1[c1]));
+        let x1 = ArrRef{ name: "x1".to_string(), sub: |i| vec![i[0]] };
+        let a = ArrRef{ name: "A".to_string(), sub: |ij| vec![ij[0], ij[1]] };
+        let y1 = ArrRef{ name: "y1".to_string(), sub: |j| vec![j[0], j[1]] };
+        let s = RefStmt{ refs: vec![x1.clone(), x1.clone(), a.clone(), y1.clone()] };
+	    let s_ref = LoopTNode::new_ref( Stmt::Ref(s) );
+
+        let j_loop_ref = LoopTNode::new_simple_loop_ref( "j", 0, n );
+	    LoopTNode::extend_loop_body( &j_loop_ref, &s_ref );
+
+        let i_loop_ref = LoopTNode::new_simple_loop_ref( "i", 0, n );
+	    LoopTNode::extend_loop_body( &i_loop_ref, &j_loop_ref );
+
+        assert_eq!(i_loop_ref.node_count(), 3);
+
+    }
+
+    #[test]
+    fn mat_transpose2() {
+        let n = 1024;
+    //     for (int c0 = 0; c0 < n; c0 += 1)
+    //     for (int c1 = 0; c1 < n; c1 += 1)
+    //     x2[c0] = (x2[c0] + (A[c1][c0] * y_2[c1]));
+        let x2 = ArrRef{ name: "x2".to_string(), sub: |i| vec![i[0]] };
+        let a = ArrRef{ name: "A".to_string(), sub: |ij| vec![ij[0], ij[1]] };
+        let y2 = ArrRef{ name: "y2".to_string(), sub: |j| vec![j[0], j[1]] };
+        let s = RefStmt{ refs: vec![x2.clone(), x2.clone(), a.clone(), y2.clone()] };
+	    let s_ref = LoopTNode::new_ref( Stmt::Ref(s) );
+
+        let j_loop_ref = LoopTNode::new_simple_loop_ref( "j", 0, n );
+	    LoopTNode::extend_loop_body( &j_loop_ref, &s_ref );
+
+        let i_loop_ref = LoopTNode::new_simple_loop_ref( "i", 0, n );
+	    LoopTNode::extend_loop_body( &i_loop_ref, &j_loop_ref );
+
+        assert_eq!(i_loop_ref.node_count(), 3);
+
+    }
 }
