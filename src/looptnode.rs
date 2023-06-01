@@ -16,7 +16,7 @@ pub enum Stmt {
     Loop(LoopStmt),
     /// A statement is a sequence of array references
     // Ref(RefStmt),
-    Ref(Vec<ArrRef>),
+    Ref(ArrRef),
 }
 
 pub struct LoopStmt {
@@ -134,11 +134,17 @@ mod tests {
         let a = ArrRef { name: "A".to_string(), sub: |ijk| vec![ijk[0], ijk[2]] };
         let b = ArrRef { name: "B".to_string(), sub: |ijk| vec![ijk[2], ijk[1]] };
         // let s = RefStmt { refs: vec![c.clone(), c, a, b] };
-        let s = vec![c.clone(), c, a, b];
-        let s_ref = LoopTNode::new_ref(Stmt::Ref(s));
+        // let s = vec![c.clone(), c, a, b];
+        // let s_ref = LoopTNode::new_ref(Stmt::Ref(s));
+        let s_ref_c = LoopTNode::new_ref(Stmt::Ref(c));
+        let s_ref_a = LoopTNode::new_ref(Stmt::Ref(a));
+        let s_ref_b = LoopTNode::new_ref(Stmt::Ref(b));
+
         // creating loop k = 0, n { s_ref }
         let k_loop_ref = LoopTNode::new_simple_loop_ref("k", 0, n);
-        LoopTNode::extend_loop_body(&k_loop_ref, &s_ref);
+        LoopTNode::extend_loop_body(&k_loop_ref, &s_ref_c);
+        LoopTNode::extend_loop_body(&k_loop_ref, &s_ref_a);
+        LoopTNode::extend_loop_body(&k_loop_ref, &s_ref_b);
         // creating loop j = 0, n
         let j_loop_ref = LoopTNode::new_simple_loop_ref("j", 0, n);
         LoopTNode::extend_loop_body(&j_loop_ref, &k_loop_ref);
@@ -146,7 +152,7 @@ mod tests {
         let i_loop_ref = LoopTNode::new_simple_loop_ref("i", 0, n);
         LoopTNode::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
-        assert_eq!(i_loop_ref.node_count(), 4);
+        assert_eq!(i_loop_ref.node_count(), 6);
 
         // let s_ref = Rc::new(LoopTNode{ stmt: Stmt::Ref(s),
         // 			       parent: RefCell::new(Weak::new()) });
@@ -197,16 +203,22 @@ mod tests {
         let a = ArrRef { name: "A".to_string(), sub: |ij| vec![ij[0], ij[1]] };
         let y1 = ArrRef { name: "y1".to_string(), sub: |j| vec![j[0], j[1]] };
         // let s = RefStmt{ refs: vec![x1.clone(), x1.clone(), a.clone(), y1.clone()] };
-        let s = vec![x1.clone(), x1.clone(), a.clone(), y1.clone()];
-        let s_ref = LoopTNode::new_ref(Stmt::Ref(s));
+        // let s = vec![x1.clone(), x1.clone(), a.clone(), y1.clone()];
+
+
+        let s_ref_x1 = LoopTNode::new_ref(Stmt::Ref(x1));
+        let s_ref_a = LoopTNode::new_ref(Stmt::Ref(a));
+        let s_ref_y1 = LoopTNode::new_ref(Stmt::Ref(y1));
 
         let j_loop_ref = LoopTNode::new_simple_loop_ref("j", 0, n);
-        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref);
+        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref_x1);
+        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref_a);
+        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref_y1);
 
         let i_loop_ref = LoopTNode::new_simple_loop_ref("i", 0, n);
         LoopTNode::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
-        assert_eq!(i_loop_ref.node_count(), 3);
+        assert_eq!(i_loop_ref.node_count(), 5);
     }
 
     #[test]
@@ -219,15 +231,22 @@ mod tests {
         let a = ArrRef { name: "A".to_string(), sub: |ij| vec![ij[0], ij[1]] };
         let y2 = ArrRef { name: "y2".to_string(), sub: |j| vec![j[0], j[1]] };
         // let s = RefStmt{ refs: vec![x2.clone(), x2.clone(), a.clone(), y2.clone()] };
-        let s = vec![x2.clone(), x2.clone(), a.clone(), y2.clone()];
-        let s_ref = LoopTNode::new_ref(Stmt::Ref(s));
+        // let s = vec![x2.clone(), x2.clone(), a.clone(), y2.clone()];
+        // let s_ref = LoopTNode::new_ref(Stmt::Ref(s));
+
+        let s_ref_x1 = LoopTNode::new_ref(Stmt::Ref(x2));
+        let s_ref_a = LoopTNode::new_ref(Stmt::Ref(a));
+        let s_ref_y1 = LoopTNode::new_ref(Stmt::Ref(y2));
+
 
         let j_loop_ref = LoopTNode::new_simple_loop_ref("j", 0, n);
-        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref);
+        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref_x1);
+        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref_a);
+        LoopTNode::extend_loop_body(&j_loop_ref, &s_ref_y1);
 
         let i_loop_ref = LoopTNode::new_simple_loop_ref("i", 0, n);
         LoopTNode::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
-        assert_eq!(i_loop_ref.node_count(), 3);
+        assert_eq!(i_loop_ref.node_count(), 5);
     }
 }
