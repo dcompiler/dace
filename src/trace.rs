@@ -23,16 +23,15 @@ fn trace_rec(code: &Rc<LoopTNode>, ivec: &Vec<i32>, sim: &mut LRUStack<usize>, h
 			       let rd = sim.rec_access(addr);
 			       hist.add_dist(rd);},
 	Stmt::Loop(aloop) => {
-	    let mut myvec = ivec.clone();
-	    myvec.push(0);
 	    if let LoopBound::Fixed(lb) = aloop.lb {
 		if let LoopBound::Fixed(ub) = aloop.ub {
 		    (lb..ub).into_iter().for_each(
 			|i| {
-			*myvec.last_mut().unwrap() = i;
 			aloop.body.borrow().iter().for_each(
-			    |stmt|
-			    trace_rec(stmt, &myvec, sim, hist) )})
+			    |stmt| {
+				let mut myvec = ivec.clone();
+				myvec.push(i);
+				trace_rec(stmt, &myvec, sim, hist) })})
 		}
 		else {panic!("dynamic loop upper bound is not supported")}
 	    }
