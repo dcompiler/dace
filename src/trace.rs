@@ -1,4 +1,4 @@
-use crate::looptnode::*;
+use crate::loop_tree::*;
 use lru_stack::LRUStack;
 use hist::Hist;
 use std::rc::Rc;

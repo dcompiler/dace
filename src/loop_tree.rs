@@ -126,7 +126,7 @@ impl LoopTNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::looptnode::*;
+    use super::*;
 
     #[test]
     fn acc_ref() {
