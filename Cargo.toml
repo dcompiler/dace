@@ -6,3 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ascii_converter = "0.3.0"
+lru_stack = { path = "../stack_alg_sim/lru_stack"}
+hist = { path = "../stack_alg_sim/hist" }

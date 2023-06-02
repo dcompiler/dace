@@ -3,5 +3,24 @@
 version = 3
 
 [[package]]
+name = "ascii_converter"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a73cd7fe90cd95612f7486889bbe1110689e03f745d9ceac276d4cfe6c4574e9"
+
+[[package]]
+name = "hist"
+version = "0.1.0"
+
+[[package]]
+name = "lru_stack"
+version = "0.1.0"
+
+[[package]]
 name = "v3pluss"
 version = "0.1.0"
+dependencies = [
+ "ascii_converter",
+ "hist",
+ "lru_stack",
+]
