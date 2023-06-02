@@ -5,7 +5,7 @@ use ascii_converter::string_to_decimals;
 use std::rc::Rc;
 
 // Handling a single array ONLY.
-fn access2addr(ary_ref: &AryRef, ivec: &Vec<usize>) -> usize {
+fn access2addr(ary_ref: &AryRef, ivec: &Vec<i32>) -> usize {
     // let ary_initial: usize = (string_to_decimals(&ary_ref.name).unwrap())[0] as usize;
     // let base = ary_initial * MAX_ARRAY;
     
@@ -18,7 +18,7 @@ fn access2addr(ary_ref: &AryRef, ivec: &Vec<usize>) -> usize {
     return offset;
 }
 
-fn trace_rec(code: &Rc<LoopTNode>, ivec: &Vec<usize>, sim: &mut LRUStack<usize>, hist: &mut Hist) {
+fn trace_rec(code: &Rc<LoopTNode>, ivec: &Vec<i32>, sim: &mut LRUStack<usize>, hist: &mut Hist) {
     match &code.stmt {
 	Stmt::Ref(ary_ref) => {let addr = access2addr(&ary_ref, &ivec);
 			       let rd = sim.rec_access(addr);
@@ -28,7 +28,7 @@ fn trace_rec(code: &Rc<LoopTNode>, ivec: &Vec<usize>, sim: &mut LRUStack<usize>,
 	    myvec.push(0);
 	    if let LoopBound::Fixed(lb) = aloop.lb {
 		if let LoopBound::Fixed(ub) = aloop.ub {
-		    ((lb as usize)..(ub as usize)).into_iter().for_each(
+		    (lb..ub).into_iter().for_each(
 			|i| {
 			*myvec.last_mut().unwrap() = i;
 			aloop.body.borrow().iter().for_each(
@@ -45,7 +45,7 @@ fn trace_rec(code: &Rc<LoopTNode>, ivec: &Vec<usize>, sim: &mut LRUStack<usize>,
 pub fn trace(code: &Rc<LoopTNode>) -> Hist {
     let mut sim = LRUStack::<usize>::new();
     let mut hist = Hist::new();
-    trace_rec(code, &Vec::<usize>::new(), &mut sim, &mut hist);
+    trace_rec(code, &Vec::<i32>::new(), &mut sim, &mut hist);
     hist
 }
 
@@ -55,7 +55,8 @@ mod test {
 
     #[test]
     fn test_access2addr() {
-	let aij_node = LoopTNode::new_ref("x", vec![10,10], |ij| vec![ij[0], ij[1]]);
+	let aij_node = LoopTNode::new_ref("x", vec![10,10],
+					  |ij| vec![ij[0] as usize, ij[1] as usize]);
 	if let Stmt::Ref(aij) = &aij_node.stmt {
 	    assert_eq!(access2addr(&aij, &vec![0,0]), 0);
 	    assert_eq!(access2addr(&aij, &vec![9,9]), 99);
@@ -66,7 +67,8 @@ mod test {
     fn loop_a_i() {
 
         // i = 0, n { a[i] }
-        let aref = LoopTNode::new_ref("A", vec![10], |i| vec![i[0]]);
+        let aref = LoopTNode::new_ref("A", vec![10],
+				      |i| vec![i[0] as usize]);
         let aloop = LoopTNode::new_single_loop("i", 0, 10);
         LoopTNode::extend_loop_body(&aloop, &aref);
 
