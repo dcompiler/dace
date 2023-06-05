@@ -98,6 +98,28 @@ impl LoopTNode {
         }
     }
 
+    pub fn loop_only<U, F>(&self, f: F) -> Option<U>
+    where F: FnOnce(&LoopStmt) -> U
+    {
+	match &self.stmt {
+	    Stmt::Loop(ref aloop) => Some(f(aloop)),
+	    _ => None
+	}
+    }
+
+    // pub fn loop_body<'a>(&'a self, i: usize) -> &'a Rc<LoopTNode> {
+    // }
+	
+    pub fn get_lb(&self) -> Option<i32> {
+	self.loop_only( |lp| if let LoopBound::Fixed(lowerbound) = lp.lb {
+		lowerbound } else {panic!("dynamic loop bound is not supported") })
+    }
+
+    pub fn get_ub(&self) -> Option<i32> {
+	self.loop_only( |lp|  if let LoopBound::Fixed(upperbound) = lp.ub {
+		upperbound } else {panic!("dynamic loop bound is not supported") })
+    }
+
     // Get the count of nodes in the loop tree.
     fn node_count(&self) -> u32 {
         match &self.stmt {
