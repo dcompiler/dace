@@ -3,17 +3,5 @@
 version = 3
 
 [[package]]
-name = "hist"
-version = "0.1.0"
-
-[[package]]
-name = "lru_stack"
-version = "0.1.0"
-
-[[package]]
 name = "v3pluss"
 version = "0.1.0"
-dependencies = [
- "hist",
- "lru_stack",
-]
