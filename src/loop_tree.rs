@@ -50,6 +50,7 @@ pub struct AryRef {
     /// Subscript expressions: one function for each data dimension.  
     /// Each function takes the indices of its loop nest and returns indices of the array access.
     pub sub: fn(&IterVec) -> AryAcc,
+    pub base: Option<usize>
 }
 
 /// Type alias for the iteration vector, with i32 elements.
@@ -68,7 +69,7 @@ impl LoopTNode {
 
     pub fn new_ref(ary_nm: &str, ary_dim: Vec<usize>,
 		   ary_sub: fn(&Vec<i32>)->Vec<usize>) -> Rc<LoopTNode> {
-	let ref_stmt = AryRef { name: ary_nm.to_string(), dim: ary_dim, sub: ary_sub };
+	let ref_stmt = AryRef { name: ary_nm.to_string(), dim: ary_dim, sub: ary_sub, base: None};
 	LoopTNode::new_node(Stmt::Ref(ref_stmt))
     }
 
@@ -103,6 +104,15 @@ impl LoopTNode {
     {
 	match &self.stmt {
 	    Stmt::Loop(ref aloop) => Some(f(aloop)),
+	    _ => None
+	}
+    }
+
+    pub fn ary_only<U, F>(&self, f: F) -> Option<U>
+    where F: FnOnce(&AryRef) -> U
+    {
+	match &self.stmt {
+	    Stmt::Ref(ref a_ref) => Some(f(a_ref)),
 	    _ => None
 	}
     }
@@ -154,7 +164,8 @@ mod tests {
     fn acc_ref() {
         let ar = AryRef { name: "X".to_string(),
 			  dim: vec![10],
-			  sub: |iv| vec![(iv[0] as usize) + 1] };
+			  sub: |iv| vec![(iv[0] as usize) + 1],
+			  base: None};
         assert_eq!((ar.sub)(&vec![1]), [2]);
     }
 
