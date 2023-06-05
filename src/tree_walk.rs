@@ -40,8 +40,9 @@ impl Iterator for Walk {
 			}
 			break;
 		    }
-		    if self.stack.len() == 0 { break; }
-		}}
+		    if self.stack.len() == 0 { return None }
+		}	
+	    }
 	}
 	Some(top_node)
     }
@@ -60,6 +61,21 @@ mod test {
 
 	let awalk = Walk::new( &aloop );
 	assert_eq!(awalk.fold(0, |cnt, stmt| cnt + 1 ), 2);
+    }
+
+    #[test]
+    fn loop_ij() {
+        // i = 0, 1, {j = 0, 0 n { a[0] }; b[0]
+        let aref = LoopTNode::new_ref("A", vec![1], |_| vec![0]);
+        let jloop = LoopTNode::new_single_loop("i", 0, 10);
+        LoopTNode::extend_loop_body(&jloop, &aref);
+        let bref = LoopTNode::new_ref("B", vec![1], |_| vec![0]);
+	let iloop = LoopTNode::new_single_loop("j", 0, 1);
+	LoopTNode::extend_loop_body(&iloop, &jloop);
+	LoopTNode::extend_loop_body(&iloop, &bref);
+
+	let awalk = Walk::new( &jloop );
+	assert_eq!(awalk.fold(0, |cnt, stmt| cnt + 1 ), 4);
     }
 }
 	    
