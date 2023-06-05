@@ -1,3 +1,2 @@
-mod loop_tree;
-mod trace;
-mod tree_walk;
+pub mod loop_tree;
+pub mod tree_walk;
