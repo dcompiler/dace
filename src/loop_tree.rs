@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 /// Each loop and statement is a node in a loop tree.
+#[derive(Debug)]
 pub struct LoopTNode {
     pub stmt: Stmt,
     parent: LTNodeWeakRef,
@@ -11,6 +12,7 @@ pub type LTNodesRef = RefCell<Vec<Rc<LoopTNode>>>;
 pub type LTNodeWeakRef = RefCell<Weak<LoopTNode>>;
 
 /// Statements in the loop tree.
+#[derive(Debug)]
 pub enum Stmt {
     /// A single loop
     Loop(LoopStmt),
@@ -19,19 +21,20 @@ pub enum Stmt {
     Ref(AryRef),
 }
 
+#[derive(Debug)]
 pub struct LoopStmt {
     pub iv: String,
     pub lb: LoopBound,
     pub ub: LoopBound,
     // The next two need the FnOnce trait, which we'll add later
     // Now we assume test is iv < ub
-    pub test: fn(i32,i32) -> bool,
+    pub test: fn(i32, i32) -> bool,
     // Now we assume step is iv = iv + 1
     pub step: fn(i32) -> i32,
     pub body: LTNodesRef,
 }
 
-
+#[derive(Debug)]
 pub enum LoopBound {
     Fixed(i32),
     Dynamic(fn(&IterVec) -> i32),
@@ -42,7 +45,7 @@ pub enum LoopBound {
 // }
 
 /// Array reference.
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct AryRef {
     pub name: String,
     /// array dimensions, e.g. [5,5]
@@ -50,7 +53,7 @@ pub struct AryRef {
     /// Subscript expressions: one function for each data dimension.  
     /// Each function takes the indices of its loop nest and returns indices of the array access.
     pub sub: fn(&IterVec) -> AryAcc,
-    pub base: Option<usize>
+    pub base: Option<usize>,
 }
 
 /// Type alias for the iteration vector, with i32 elements.
@@ -61,16 +64,24 @@ pub type AryAcc = Vec<usize>;
 impl LoopTNode {
     /// Create a new LoopTNode with a given statement.
     pub fn new_node(a_stmt: Stmt) -> Rc<LoopTNode> {
-        return Rc::new(LoopTNode {
+        Rc::new(LoopTNode {
             stmt: a_stmt,
             parent: RefCell::new(Weak::new()),
-        });
+        })
     }
 
-    pub fn new_ref(ary_nm: &str, ary_dim: Vec<usize>,
-		   ary_sub: fn(&Vec<i32>)->Vec<usize>) -> Rc<LoopTNode> {
-	let ref_stmt = AryRef { name: ary_nm.to_string(), dim: ary_dim, sub: ary_sub, base: None};
-	LoopTNode::new_node(Stmt::Ref(ref_stmt))
+    pub fn new_ref(
+        ary_nm: &str,
+        ary_dim: Vec<usize>,
+        ary_sub: fn(&Vec<i32>) -> Vec<usize>,
+    ) -> Rc<LoopTNode> {
+        let ref_stmt = AryRef {
+            name: ary_nm.to_string(),
+            dim: ary_dim,
+            sub: ary_sub,
+            base: None,
+        };
+        LoopTNode::new_node(Stmt::Ref(ref_stmt))
     }
 
     /// Create a new LoopTNode representing a simple loop with a fixed range.
@@ -100,42 +111,59 @@ impl LoopTNode {
     }
 
     pub fn loop_only<U, F>(&self, f: F) -> Option<U>
-    where F: FnOnce(&LoopStmt) -> U
+    where
+        F: FnOnce(&LoopStmt) -> U,
     {
-	match &self.stmt {
-	    Stmt::Loop(ref aloop) => Some(f(aloop)),
-	    _ => None
-	}
+        match &self.stmt {
+            Stmt::Loop(ref aloop) => Some(f(aloop)),
+            _ => None,
+        }
     }
 
     pub fn ary_only<U, F>(&self, f: F) -> Option<U>
-    where F: FnOnce(&AryRef) -> U
+    where
+        F: FnOnce(&AryRef) -> U,
     {
-	match &self.stmt {
-	    Stmt::Ref(ref a_ref) => Some(f(a_ref)),
-	    _ => None
-	}
+        match &self.stmt {
+            Stmt::Ref(ref a_ref) => Some(f(a_ref)),
+            _ => None,
+        }
     }
 
     // pub fn loop_body<'a>(&'a self, i: usize) -> &'a Rc<LoopTNode> {
     // }
-	
+
     pub fn get_lb(&self) -> Option<i32> {
-	self.loop_only( |lp| if let LoopBound::Fixed(lowerbound) = lp.lb {
-		lowerbound } else {panic!("dynamic loop bound is not supported") })
+        self.loop_only(|lp| {
+            if let LoopBound::Fixed(lowerbound) = lp.lb {
+                lowerbound
+            } else {
+                panic!("dynamic loop bound is not supported")
+            }
+        })
     }
 
     pub fn get_ub(&self) -> Option<i32> {
-	self.loop_only( |lp|  if let LoopBound::Fixed(upperbound) = lp.ub {
-		upperbound } else {panic!("dynamic loop bound is not supported") })
+        self.loop_only(|lp| {
+            if let LoopBound::Fixed(upperbound) = lp.ub {
+                upperbound
+            } else {
+                panic!("dynamic loop bound is not supported")
+            }
+        })
     }
 
     // Get the count of nodes in the loop tree.
+    #[allow(dead_code)]
     fn node_count(&self) -> u32 {
         match &self.stmt {
             //    The body of a loop is a vector of LoopTNode's, so we need to
             //    iterate over the vector and sum the sanity of each node.
-            Stmt::Loop(a_loop) => a_loop.body.borrow().iter().fold(1, |acc, x| acc + x.node_count()),
+            Stmt::Loop(a_loop) => a_loop
+                .body
+                .borrow()
+                .iter()
+                .fold(1, |acc, x| acc + x.node_count()),
             Stmt::Ref(_) => 1,
         }
     }
@@ -155,31 +183,35 @@ impl LoopTNode {
 //     }
 // }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn acc_ref() {
-        let ar = AryRef { name: "X".to_string(),
-			  dim: vec![10],
-			  sub: |iv| vec![(iv[0] as usize) + 1],
-			  base: None};
+        let ar = AryRef {
+            name: "X".to_string(),
+            dim: vec![10],
+            sub: |iv| vec![(iv[0] as usize) + 1],
+            base: None,
+        };
         assert_eq!((ar.sub)(&vec![1]), [2]);
     }
 
     #[test]
     fn matmul() {
-        let n: usize = 100;  // array dim
-	let ubound = n as i32;  // loop bound
-        // creating C[i,j] += A[i,k] * B[k,j]
-        let s_ref_c = LoopTNode::new_ref("C", vec![n,n],
-					 |ijk| vec![ijk[0] as usize, ijk[1] as usize]);
-        let s_ref_a = LoopTNode::new_ref("A", vec![n,n],
-					 |ijk| vec![ijk[0] as usize, ijk[2] as usize]);
-        let s_ref_b = LoopTNode::new_ref("B", vec![n,n],
-					 |ijk| vec![ijk[2] as usize, ijk[1] as usize]);
+        let n: usize = 100; // array dim
+        let ubound = n as i32; // loop bound
+                               // creating C[i,j] += A[i,k] * B[k,j]
+        let s_ref_c = LoopTNode::new_ref("C", vec![n, n], |ijk| {
+            vec![ijk[0] as usize, ijk[1] as usize]
+        });
+        let s_ref_a = LoopTNode::new_ref("A", vec![n, n], |ijk| {
+            vec![ijk[0] as usize, ijk[2] as usize]
+        });
+        let s_ref_b = LoopTNode::new_ref("B", vec![n, n], |ijk| {
+            vec![ijk[2] as usize, ijk[1] as usize]
+        });
 
         // creating loop k = 0, n { s_ref }
         let k_loop_ref = LoopTNode::new_single_loop("k", 0, ubound);
@@ -237,13 +269,13 @@ mod tests {
     #[test]
     fn mat_transpose1() {
         let n: usize = 1024;
-	let ubound = n as i32;
+        let ubound = n as i32;
         // for (int c0 = 0; c0 < n; c0 += 1)
         // for (int c1 = 0; c1 < n; c1 += 1)
         //   x1[c0] = (x1[c0] + (A[c0][c1] * y_1[c1]));
         let s_ref_x1 = LoopTNode::new_ref("x1", vec![n], |ij| vec![ij[0] as usize]);
-        let s_ref_a = LoopTNode::new_ref("a", vec![n,n],
-					  |ij| vec![ij[0] as usize, ij[1] as usize]);
+        let s_ref_a =
+            LoopTNode::new_ref("a", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
         let s_ref_y1 = LoopTNode::new_ref("y1", vec![n], |ij| vec![ij[1] as usize]);
 
         let j_loop_ref = LoopTNode::new_single_loop("j", 0, ubound);
@@ -274,7 +306,6 @@ mod tests {
     //     let s_ref_x1 = LoopTNode::new_node(Stmt::Ref(x2));
     //     let s_ref_a = LoopTNode::new_node(Stmt::Ref(a));
     //     let s_ref_y1 = LoopTNode::new_node(Stmt::Ref(y2));
-
 
     //     let j_loop_ref = LoopTNode::new_single_loop("j", 0, ubound);
     //     LoopTNode::extend_loop_body(&j_loop_ref, &s_ref_x1);
