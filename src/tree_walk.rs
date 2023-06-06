@@ -4,52 +4,56 @@ use std::rc::Rc;
 
 pub struct Walk {
     // usize is the current body statement index, if there is any
-    stack: Vec<(Rc<LoopTNode>, Option<usize>)>,
+    stack: Vec<(Rc<LoopTNode>, usize)>,
 }
 
 impl Walk {
-    pub fn new(root: &Rc<LoopTNode>) -> Walk {
+    pub fn new(root: &Rc<LoopTNode>) -> Self {
         Walk {
-            stack: vec![(root.clone(), None)],
+            stack: vec![(root.clone(), 0)],
         }
         // Iter{ stack: vec![(root, root.loop_only( |lp| {
         //     if lp.body.borrow().len() > 0 { Some(0) } else { None } }))] }
+    }
+
+    fn step(&mut self) -> Option<Rc<LoopTNode>> {
+        match self.stack.last().cloned() {
+            None => None, // stack already empty
+            Some((node, visited)) => {
+                // if none has been visited, this is the first time we enter the node
+                let mut result = None;
+                if visited == 0 {
+                    result = Some(node.clone());
+                }
+                match &node.as_ref().stmt {
+                    Stmt::Loop(children) => {
+                        if visited >= children.body.borrow().len() {
+                            self.stack.pop();
+                        } else {
+                            self.stack.last_mut().unwrap().1 += 1;
+                            self.stack
+                                .push((children.body.borrow()[visited].clone(), 0));
+                        }
+                    }
+                    Stmt::Ref(_) => {
+                        self.stack.pop();
+                    }
+                }
+                result
+            }
+        }
     }
 }
 
 impl Iterator for Walk {
     type Item = Rc<LoopTNode>;
-
     fn next(&mut self) -> Option<Self::Item> {
-        if self.stack.is_empty() {
-            return None;
-        }
-
-        let (top_node, cur_i) = self.stack.pop().unwrap();
-        match &top_node.stmt {
-            Stmt::Ref(_) => (), // dropping the Rc ref
-            Stmt::Loop(_) => {
-                self.stack.push((top_node.clone(), cur_i)); // setting up the loop
-                                                            // This may take a while
-                loop {
-                    let (cur_top, cur_i) = self.stack.pop().unwrap();
-                    let next_i = cur_i.map_or(0, |i| i + 1);
-                    let body_len = cur_top.loop_only(|s| s.body.borrow().len()).unwrap();
-                    if next_i < body_len {
-                        self.stack.push((cur_top.clone(), Some(next_i)));
-                        if let Stmt::Loop(ref cur_loop) = cur_top.stmt {
-                            let next_body_node = &cur_loop.body.borrow()[next_i];
-                            self.stack.push((next_body_node.clone(), None));
-                        }
-                        break;
-                    }
-                    if self.stack.is_empty() {
-                        return None;
-                    }
-                }
+        while !self.stack.is_empty() {
+            if let Some(x) = self.step() {
+                return Some(x);
             }
         }
-        Some(top_node)
+        None
     }
 }
 
@@ -72,14 +76,13 @@ mod test {
     fn loop_ij() {
         // i = 0, 1, {j = 0, 0 n { a[0] }; b[0]
         let aref = LoopTNode::new_ref("A", vec![1], |_| vec![0]);
-        let jloop = LoopTNode::new_single_loop("i", 0, 10);
+        let jloop = LoopTNode::new_single_loop("j", 0, 10);
         LoopTNode::extend_loop_body(&jloop, &aref);
         let bref = LoopTNode::new_ref("B", vec![1], |_| vec![0]);
-        let iloop = LoopTNode::new_single_loop("j", 0, 1);
+        let iloop = LoopTNode::new_single_loop("i", 0, 1);
         LoopTNode::extend_loop_body(&iloop, &jloop);
         LoopTNode::extend_loop_body(&iloop, &bref);
-
-        let awalk = Walk::new(&jloop);
+        let awalk = Walk::new(&iloop);
         assert_eq!(awalk.fold(0, |cnt, _stmt| cnt + 1), 4);
     }
 }

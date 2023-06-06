@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 /// Each loop and statement is a node in a loop tree.
+#[derive(Debug)]
 pub struct LoopTNode {
     pub stmt: Stmt,
     parent: LTNodeWeakRef,
@@ -11,6 +12,7 @@ pub type LTNodesRef = RefCell<Vec<Rc<LoopTNode>>>;
 pub type LTNodeWeakRef = RefCell<Weak<LoopTNode>>;
 
 /// Statements in the loop tree.
+#[derive(Debug)]
 pub enum Stmt {
     /// A single loop
     Loop(LoopStmt),
@@ -19,6 +21,7 @@ pub enum Stmt {
     Ref(AryRef),
 }
 
+#[derive(Debug)]
 pub struct LoopStmt {
     pub iv: String,
     pub lb: LoopBound,
@@ -31,6 +34,7 @@ pub struct LoopStmt {
     pub body: LTNodesRef,
 }
 
+#[derive(Debug)]
 pub enum LoopBound {
     Fixed(i32),
     Dynamic(fn(&IterVec) -> i32),
@@ -41,7 +45,7 @@ pub enum LoopBound {
 // }
 
 /// Array reference.
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct AryRef {
     pub name: String,
     /// array dimensions, e.g. [5,5]
