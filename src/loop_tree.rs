@@ -120,7 +120,7 @@ impl LoopTNode {
         }
     }
 
-    pub fn ary_only<U, F>(&self, f: F) -> Option<U>
+    pub fn ref_only<U, F>(&self, f: F) -> Option<U>
     where
         F: FnOnce(&AryRef) -> U,
     {
