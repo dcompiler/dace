@@ -57,7 +57,18 @@ mod test {
 
 	let (tbl, size) = set_arybase(&mut iloop);
 	assert_eq!(tbl.len(), 3);
-	println!("{:?}", tbl);
+	// println!("{:?}", tbl);
 	assert_eq!(size, n+n*n+n*n*n);
+
+	assert_eq!(iloop.loop_only(|lp|
+				   lp.body.borrow()[0].ref_only(
+				       |rf| rf.base ).unwrap() ).unwrap(), Some(0));
+	assert_eq!(iloop.loop_only(|lp|
+				   lp.body.borrow()[1].ref_only(
+				       |rf| rf.base ).unwrap() ).unwrap(), Some(n));
+	assert_eq!(iloop.loop_only(|lp|
+				   lp.body.borrow()[2].ref_only(
+				       |rf| rf.base ).unwrap() ).unwrap(), Some(n+n*n));
+	// Walk::new(&iloop).for_each( |node| println!("{:?}", node) );
     }
 }

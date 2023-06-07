@@ -65,7 +65,7 @@ pub struct AryRef {
 
 impl std::fmt::Debug for AryRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "ArrayRef({})", self.name)
+        write!(f, "ArrayRef({}, {:?} {:?})", self.name, self.dim, self.base)
     }
 }
 
