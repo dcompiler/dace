@@ -34,10 +34,18 @@ pub struct LoopStmt {
     pub body: LTNodesRef,
 }
 
-#[derive(Debug)]
 pub enum LoopBound {
     Fixed(i32),
     Dynamic(fn(&IterVec) -> i32),
+}
+
+impl std::fmt::Debug for LoopBound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            LoopBound::Fixed(x) => write!(f, "Fixed({x})"),
+            LoopBound::Dynamic(_) => write!(f, "Dynamic"),
+        }
+    }
 }
 
 // pub struct RefStmt {
@@ -45,7 +53,6 @@ pub enum LoopBound {
 // }
 
 /// Array reference.
-#[derive(Debug)]
 pub struct AryRef {
     pub name: String,
     /// array dimensions, e.g. [5,5]
@@ -54,6 +61,12 @@ pub struct AryRef {
     /// Each function takes the indices of its loop nest and returns indices of the array access.
     pub sub: fn(&IterVec) -> AryAcc,
     pub base: Option<usize>,
+}
+
+impl std::fmt::Debug for AryRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "ArrayRef({})", self.name)
+    }
 }
 
 /// Type alias for the iteration vector, with i32 elements.
@@ -130,6 +143,26 @@ impl LoopTNode {
         }
     }
 
+    pub fn ref_only_ref<'a, U, F>(&'a self, f: F) -> Option<&'a U>
+    where
+        F: FnOnce(&'a AryRef) -> &'a U,
+    {
+        match &self.stmt {
+            Stmt::Ref(ref a_ref) => Some(f(a_ref)),
+            _ => None,
+        }
+    }
+
+    pub fn ref_only_mut_ref<'a, U, F>(&'a mut self, f: F) -> Option<&'a mut U>
+    where
+        F: FnOnce(&'a mut AryRef) -> &'a mut U,
+    {
+        match &mut self.stmt {
+            Stmt::Ref(ref mut a_ref) => Some(f(a_ref)),
+            _ => None,
+        }
+    }
+
     // pub fn loop_body<'a>(&'a self, i: usize) -> &'a Rc<LoopTNode> {
     // }
 
@@ -155,7 +188,7 @@ impl LoopTNode {
 
     // Get the count of nodes in the loop tree.
     #[allow(dead_code)]
-    fn node_count(&self) -> u32 {
+    pub fn node_count(&self) -> u32 {
         match &self.stmt {
             //    The body of a loop is a vector of LoopTNode's, so we need to
             //    iterate over the vector and sum the sanity of each node.
@@ -226,44 +259,6 @@ mod tests {
         LoopTNode::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
         assert_eq!(i_loop_ref.node_count(), 6);
-
-        // let s_ref = Rc::new(LoopTNode{ stmt: Stmt::Ref(s),
-        // 			       parent: RefCell::new(Weak::new()) });
-        // let k_loop_stmt = LoopStmt{ iv: "k".to_string(),
-        // 			    lb: LoopBound::Fixed(0), ub: LoopBound::Fixed(n),
-        // 			    // test: |k| k<n , step: |k| k+1,
-        // 			    body: RefCell::new(vec![]) };
-        // let k_loop_ref = LoopTNode::new_node( Stmt::Loop(k_loop_stmt) );
-        // let k_loop_ref = Rc::new(
-        //     LoopTNode{ stmt: Stmt::Loop(k_loop_stmt),
-        // 	       parent: RefCell::new(Weak::new())
-        //     });
-        // // officiating the parent-child relationship
-        // if let Stmt::Loop(ref lp) = k_loop_ref.stmt {
-        //     *(lp.body.borrow())[0].parent.borrow_mut() = Rc::downgrade(&k_loop_ref);
-        // }
-        // let j_loop_stmt = LoopStmt{ iv: "j".to_string(),
-        // 			    lb: LoopBound::Fixed(0), ub: LoopBound::Fixed(ubound),
-        // 			    body: RefCell::new(vec![]) };
-        // let j_loop_ref = LoopTNode::new_node( Stmt::Loop(j_loop_stmt) );
-        // let j_loop_ref = Rc::new(
-        //     LoopTNode{ stmt: Stmt::Loop(j_loop_stmt),
-        // 	       parent: RefCell::new(Weak::new())
-        //     });
-        // if let Stmt::Loop(ref lp) = j_loop_ref.stmt {
-        //     *(lp.body.borrow())[0].parent.borrow_mut() = Rc::downgrade(&j_loop_ref);
-        // }
-        // let i_loop_stmt = LoopStmt{ iv: "i".to_string(),
-        // 			    lb: LoopBound::Fixed(0), ub: LoopBound::Fixed(ubound),
-        // 			    body: RefCell::new(vec![]) };
-        // let i_loop_ref = LoopTNode::new_node( Stmt::Loop(i_loop_stmt) );
-        // let i_loop_ref = Rc::new(
-        //     LoopTNode{ stmt: Stmt::Loop(i_loop_stmt),
-        // 	       parent: RefCell::new(Weak::new())
-        //     });
-        // if let Stmt::Loop(ref lp) = i_loop_ref.stmt {
-        //     *(lp.body.borrow())[0].parent.borrow_mut() = Rc::downgrade(&i_loop_ref);
-        // }
     }
 
     #[test]
