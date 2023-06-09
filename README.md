@@ -1,5 +1,5 @@
 # Design Notes
-## Compile-time Enuerable Programs [Chen et al. PLDI 2018]
+## Compile-time Enumerable Programs [Chen et al. PLDI 2018]
 
 This is the class of programs that can be analyzed by static sampling.  These are the conditions:
 
