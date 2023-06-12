@@ -19,6 +19,7 @@ pub enum Stmt {
     /// A statement is a sequence of array references
     // Ref(RefStmt),
     Ref(AryRef),
+    Block(Vec<Rc<LoopTNode>>),
 }
 
 #[derive(Debug)]
@@ -192,12 +193,21 @@ impl LoopTNode {
         match &self.stmt {
             //    The body of a loop is a vector of LoopTNode's, so we need to
             //    iterate over the vector and sum the sanity of each node.
-            Stmt::Loop(a_loop) => a_loop
-                .body
-                .borrow()
-                .iter()
-                .fold(1, |acc, x| acc + x.node_count()),
+            Stmt::Loop(a_loop) => {
+                1 + a_loop
+                    .body
+                    .borrow()
+                    .iter()
+                    .map(|x| x.as_ref().node_count())
+                    .sum::<u32>()
+            }
             Stmt::Ref(_) => 1,
+            Stmt::Block(children) => {
+                1 + children
+                    .iter()
+                    .map(|x| x.as_ref().node_count())
+                    .sum::<u32>()
+            }
         }
     }
 }
