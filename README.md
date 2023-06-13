@@ -1,5 +1,8 @@
-# Design Notes
-## Compile-time Enumerable Programs [Chen et al. PLDI 2018]
+#DACE (达思) Programs
+
+DACE stands for Data Access Compile-time Enumerable.  Its Chinese name is 达思 which means far reaching thoughts. 
+
+Based on Compile-time Enumerable Programs [Chen et al. PLDI 2018]
 
 This is the class of programs whose data accesses can be enumerated by a compiler, or data access compiler enumerable (DACE) programs.  These are the conditions:
 
