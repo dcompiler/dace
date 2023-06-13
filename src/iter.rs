@@ -4,11 +4,11 @@ use std::rc::Rc;
 
 pub struct Walk {
     // usize is the current body statement index, if there is any
-    stack: Vec<(Rc<LoopTNode>, usize)>,
+    stack: Vec<(Rc<Node>, usize)>,
 }
 
 impl Walk {
-    pub fn new(root: &Rc<LoopTNode>) -> Self {
+    pub fn new(root: &Rc<Node>) -> Self {
         Walk {
             stack: vec![(root.clone(), 0)],
         }
@@ -16,7 +16,7 @@ impl Walk {
         //     if lp.body.borrow().len() > 0 { Some(0) } else { None } }))] }
     }
 
-    fn step(&mut self) -> Option<Rc<LoopTNode>> {
+    fn step(&mut self) -> Option<Rc<Node>> {
         match self.stack.last().cloned() {
             None => None, // stack already empty
             Some((node, visited)) => {
@@ -54,7 +54,7 @@ impl Walk {
 }
 
 impl Iterator for Walk {
-    type Item = Rc<LoopTNode>;
+    type Item = Rc<Node>;
     fn next(&mut self) -> Option<Self::Item> {
         while !self.stack.is_empty() {
             if let Some(x) = self.step() {
@@ -72,9 +72,9 @@ mod test {
     #[test]
     fn loop_a_0() {
         // i = 0, n { a[0] }
-        let aref = LoopTNode::new_ref("A", vec![1], |_| vec![0]);
-        let aloop = LoopTNode::new_single_loop("i", 0, 10);
-        LoopTNode::extend_loop_body(&aloop, &aref);
+        let aref = Node::new_ref("A", vec![1], |_| vec![0]);
+        let aloop = Node::new_single_loop("i", 0, 10);
+        Node::extend_loop_body(&aloop, &aref);
 
         let awalk = Walk::new(&aloop);
         assert_eq!(awalk.fold(0, |cnt, _stmt| cnt + 1), 2);
@@ -83,13 +83,13 @@ mod test {
     #[test]
     fn loop_ij() {
         // i = 0, 1, {j = 0, 0 n { a[0] }; b[0]
-        let aref = LoopTNode::new_ref("A", vec![1], |_| vec![0]);
-        let jloop = LoopTNode::new_single_loop("j", 0, 10);
-        LoopTNode::extend_loop_body(&jloop, &aref);
-        let bref = LoopTNode::new_ref("B", vec![1], |_| vec![0]);
-        let iloop = LoopTNode::new_single_loop("i", 0, 1);
-        LoopTNode::extend_loop_body(&iloop, &jloop);
-        LoopTNode::extend_loop_body(&iloop, &bref);
+        let aref = Node::new_ref("A", vec![1], |_| vec![0]);
+        let jloop = Node::new_single_loop("j", 0, 10);
+        Node::extend_loop_body(&jloop, &aref);
+        let bref = Node::new_ref("B", vec![1], |_| vec![0]);
+        let iloop = Node::new_single_loop("i", 0, 1);
+        Node::extend_loop_body(&iloop, &jloop);
+        Node::extend_loop_body(&iloop, &bref);
         let awalk = Walk::new(&iloop);
         assert_eq!(awalk.fold(0, |cnt, _stmt| cnt + 1), 4);
     }
