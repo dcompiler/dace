@@ -1,4 +1,4 @@
-#DACE (达思) Programs
+#DACE Programs
 
 DACE stands for Data Access Compile-time Enumerable.  Its Chinese name is 达思 which means far reaching thoughts. 
 
