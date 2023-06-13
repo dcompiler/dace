@@ -1,10 +1,10 @@
-use crate::ast::{LoopTNode, Stmt};
+use crate::ast::{Node, Stmt};
 use crate::iter::Walk;
 
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub fn set_arybase(aloop: &mut Rc<LoopTNode>) -> (HashMap<String, usize>, usize) {
+pub fn set_arybase(aloop: &mut Rc<Node>) -> (HashMap<String, usize>, usize) {
     let init = (HashMap::<String, usize>::new(), 0);
     Walk::new(aloop)
         .filter(|node| matches!(&node.stmt, Stmt::Ref(_)))
@@ -31,7 +31,7 @@ mod test {
     #[test]
     #[should_panic]
     fn nobase() {
-        let node = LoopTNode::new_ref("A", vec![1], |_| vec![0]);
+        let node = Node::new_ref("A", vec![1], |_| vec![0]);
         if let Stmt::Ref(aref) = &node.stmt {
             let _ = aref.base.unwrap();
         }
@@ -42,18 +42,17 @@ mod test {
         let n: usize = 100; // array dim
         let ubound = n as i32; // loop bound
                                // creating A[i] B[i,i+1] C[i,i+1,i+2]
-        let s_ref_a = LoopTNode::new_ref("A", vec![n], |i| vec![i[0] as usize]);
-        let s_ref_b =
-            LoopTNode::new_ref("B", vec![n, n], |i| vec![i[0] as usize, i[0] as usize + 1]);
-        let s_ref_c = LoopTNode::new_ref("C", vec![n, n, n], |i| {
+        let s_ref_a = Node::new_ref("A", vec![n], |i| vec![i[0] as usize]);
+        let s_ref_b = Node::new_ref("B", vec![n, n], |i| vec![i[0] as usize, i[0] as usize + 1]);
+        let s_ref_c = Node::new_ref("C", vec![n, n, n], |i| {
             vec![i[0] as usize, i[0] as usize + 1, i[0] as usize + 2]
         });
 
         // creating loop k = 0, n
-        let mut iloop = LoopTNode::new_single_loop("i", 0, ubound);
-        LoopTNode::extend_loop_body(&iloop, &s_ref_a);
-        LoopTNode::extend_loop_body(&iloop, &s_ref_b);
-        LoopTNode::extend_loop_body(&iloop, &s_ref_c);
+        let mut iloop = Node::new_single_loop("i", 0, ubound);
+        Node::extend_loop_body(&iloop, &s_ref_a);
+        Node::extend_loop_body(&iloop, &s_ref_b);
+        Node::extend_loop_body(&iloop, &s_ref_c);
 
         let (tbl, size) = set_arybase(&mut iloop);
         assert_eq!(tbl.len(), 3);
