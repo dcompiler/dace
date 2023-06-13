@@ -1,5 +1,5 @@
-use crate::loop_tree::{LoopTNode, Stmt};
-use crate::tree_walk::Walk;
+use crate::ast::{LoopTNode, Stmt};
+use crate::iter::Walk;
 
 use std::collections::HashMap;
 use std::rc::Rc;
