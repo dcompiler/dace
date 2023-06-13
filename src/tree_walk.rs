@@ -38,6 +38,14 @@ impl Walk {
                     Stmt::Ref(_) => {
                         self.stack.pop();
                     }
+                    Stmt::Block(children) => {
+                        if visited >= children.len() {
+                            self.stack.pop();
+                        } else {
+                            self.stack.last_mut().unwrap().1 += 1;
+                            self.stack.push((children[visited].clone(), 0));
+                        }
+                    }
                 }
                 result
             }

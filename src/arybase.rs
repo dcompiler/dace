@@ -6,14 +6,14 @@ use std::rc::Rc;
 
 pub fn set_arybase(aloop: &mut Rc<LoopTNode>) -> (HashMap<String, usize>, usize) {
     let init = (HashMap::<String, usize>::new(), 0);
-    Walk::new(&aloop)
+    Walk::new(aloop)
         .filter(|node| matches!(&node.stmt, Stmt::Ref(_)))
         .fold::<(HashMap<String, usize>, usize), _>(init, |(mut tbl, mut cur_base), mut node| {
             let ary_name = node.ref_only_ref(|a_ref| &a_ref.name).unwrap().as_str();
             if !tbl.contains_key(ary_name) {
-                tbl.insert(ary_name.to_string().clone(), cur_base);
+                tbl.insert(ary_name.to_string(), cur_base);
                 let dim = node.ref_only_ref(|a_ref| &a_ref.dim).unwrap();
-                let ary_size = dim.iter().fold(1, |tot, d| tot * d);
+                let ary_size: usize = dim.iter().product();
                 cur_base += ary_size;
             }
             let ary_base = tbl.get(ary_name).unwrap();
