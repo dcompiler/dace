@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::fmt::{Debug, Formatter};
 use std::rc::{Rc, Weak};
 
 /// Each loop and statement is a node in a loop tree.
@@ -22,17 +23,27 @@ pub enum Stmt {
     Block(Vec<Rc<LoopTNode>>),
 }
 
-#[derive(Debug)]
 pub struct LoopStmt {
     pub iv: String,
     pub lb: LoopBound,
     pub ub: LoopBound,
     // The next two need the FnOnce trait, which we'll add later
     // Now we assume test is iv < ub
-    pub test: fn(i32, i32) -> bool,
+    pub test: Box<dyn Fn(i32, i32) -> bool>,
     // Now we assume step is iv = iv + 1
-    pub step: fn(i32) -> i32,
+    pub step: Box<dyn Fn(i32) -> i32>,
     pub body: LTNodesRef,
+}
+
+impl Debug for LoopStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoopStmt")
+            .field("iv", &self.iv)
+            .field("lb", &self.lb)
+            .field("ub", &self.ub)
+            .field("body", &self.body)
+            .finish_non_exhaustive()
+    }
 }
 
 pub enum LoopBound {
@@ -60,7 +71,7 @@ pub struct AryRef {
     pub dim: Vec<usize>,
     /// Subscript expressions: one function for each data dimension.  
     /// Each function takes the indices of its loop nest and returns indices of the array access.
-    pub sub: fn(&IterVec) -> AryAcc,
+    pub sub: Box<dyn for<'a> Fn(&'a IterVec) -> AryAcc>,
     pub base: Option<usize>,
 }
 
@@ -92,7 +103,7 @@ impl LoopTNode {
         let ref_stmt = AryRef {
             name: ary_nm.to_string(),
             dim: ary_dim,
-            sub: ary_sub,
+            sub: Box::new(ary_sub),
             base: None,
         };
         LoopTNode::new_node(Stmt::Ref(ref_stmt))
@@ -105,8 +116,8 @@ impl LoopTNode {
             lb: LoopBound::Fixed(low),
             ub: LoopBound::Fixed(high),
             // test: |i| i<ub , step: |k| k+1,
-            test: |i, ub| i < ub,
-            step: |i| i + 1,
+            test: Box::new(|i, ub| i < ub),
+            step: Box::new(|i| i + 1),
             body: RefCell::new(vec![]),
         };
         LoopTNode::new_node(Stmt::Loop(loop_stmt))
@@ -235,7 +246,7 @@ mod tests {
         let ar = AryRef {
             name: "X".to_string(),
             dim: vec![10],
-            sub: |iv| vec![(iv[0] as usize) + 1],
+            sub: Box::new(|iv| vec![(iv[0] as usize) + 1]),
             base: None,
         };
         assert_eq!((ar.sub)(&vec![1]), [2]);
