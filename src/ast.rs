@@ -87,15 +87,19 @@ pub type IterVec = Vec<i32>;
 /// Type alias for the array access indices, with usize elements.
 pub type AryAcc = Vec<usize>;
 
-pub fn fixed(x: i32) -> LoopBound {
-    LoopBound::Fixed(x)
+impl From<i32> for LoopBound {
+    fn from(value: i32) -> Self {
+        LoopBound::Fixed(value)
+    }
 }
 
-pub fn dynamic<F>(f: F) -> LoopBound
+impl<F> From<F> for LoopBound
 where
     for<'a> F: Fn(&'a [i32]) -> i32 + 'static,
 {
-    LoopBound::Dynamic(Box::new(f))
+    fn from(value: F) -> Self {
+        LoopBound::Dynamic(Box::new(value))
+    }
 }
 
 #[macro_export]
@@ -108,16 +112,28 @@ macro_rules! dynamic {
 #[macro_export]
 macro_rules! loop_node {
     ($ivar:expr, $lb:expr => $ub:expr) => {
-        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, |i, ub| i < ub, |i| i + 1)
+        $crate::ast::Node::new_single_loop_general(
+            $ivar,
+            $lb.into(),
+            $ub.into(),
+            |i, ub| i < ub,
+            |i| i + 1,
+        )
     };
     ($ivar:expr, $lb:expr => $ub:expr, step: $step:expr) => {
-        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, |i, ub| i < ub, $step)
+        $crate::ast::Node::new_single_loop_general(
+            $ivar,
+            $lb.into(),
+            $ub.into(),
+            |i, ub| i < ub,
+            $step,
+        )
     };
     ($ivar:expr, $lb:expr => $ub:expr, test: $test:expr) => {
-        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, $test, |i| i + 1)
+        $crate::ast::Node::new_single_loop_general($ivar, $lb.into(), $ub.into(), $test, |i| i + 1)
     };
     ($ivar:expr, $lb:expr => $ub:expr, test: $test:expr, step: $step:expr) => {
-        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, $test, $step)
+        $crate::ast::Node::new_single_loop_general($ivar, $lb.into(), $ub.into(), $test, $step)
     };
 }
 
@@ -378,9 +394,9 @@ mod tests {
         //     for j in 0 .. n - i
         let n: usize = 100; // array dim
         let ubound = n as i32; // loop bound
-        let j_loop_ref = loop_node!("j", fixed(0) => dynamic(move |i| ubound - i[0]));
+        let j_loop_ref = loop_node!("j", 0 => move |i : &[i32]| ubound - i[0]);
         // creating loop i = 0, n
-        let i_loop_ref = loop_node!("i", fixed(0) => fixed(ubound), step: |x| x + 2);
+        let i_loop_ref = loop_node!("i", 0 => ubound, step: |x| x + 2);
         Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
         assert_eq!(i_loop_ref.node_count(), 2);
