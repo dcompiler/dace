@@ -87,6 +87,40 @@ pub type IterVec = Vec<i32>;
 /// Type alias for the array access indices, with usize elements.
 pub type AryAcc = Vec<usize>;
 
+pub fn fixed(x: i32) -> LoopBound {
+    LoopBound::Fixed(x)
+}
+
+pub fn dynamic<F>(f: F) -> LoopBound
+where
+    for<'a> F: Fn(&'a [i32]) -> i32 + 'static,
+{
+    LoopBound::Dynamic(Box::new(f))
+}
+
+#[macro_export]
+macro_rules! dynamic {
+    ($x:tt) => {
+        $crate::ast::LoopBound::Dynamic($tt)
+    };
+}
+
+#[macro_export]
+macro_rules! loop_node {
+    ($ivar:expr, $lb:expr => $ub:expr) => {
+        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, |i, ub| i < ub, |i| i + 1)
+    };
+    ($ivar:expr, $lb:expr => $ub:expr, step: $step:expr) => {
+        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, |i, ub| i < ub, $step)
+    };
+    ($ivar:expr, $lb:expr => $ub:expr, test: $test:expr) => {
+        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, $test, |i| i + 1)
+    };
+    ($ivar:expr, $lb:expr => $ub:expr, test: $test:expr, step: $step:expr) => {
+        $crate::ast::Node::new_single_loop_general($ivar, $lb, $ub, $test, $step)
+    };
+}
+
 impl Node {
     /// Create a new Node with a given statement.
     pub fn new_node(a_stmt: Stmt) -> Rc<Node> {
@@ -136,6 +170,30 @@ impl Node {
             // test: |i| i<ub , step: |k| k+1,
             test: Box::new(|i, ub| i < ub),
             step: Box::new(|i| i + 1),
+            body: RefCell::new(vec![]),
+        };
+        Node::new_node(Stmt::Loop(loop_stmt))
+    }
+
+    /// Create a new Node representing a simple loop with a fixed range.
+    pub fn new_single_loop_general<F, G>(
+        ivar: &str,
+        lb: LoopBound,
+        ub: LoopBound,
+        test: F,
+        step: G,
+    ) -> Rc<Node>
+    where
+        for<'a> F: Fn(i32, i32) -> bool + 'static,
+        for<'a> G: Fn(i32) -> i32 + 'static,
+    {
+        let loop_stmt = LoopStmt {
+            iv: ivar.to_string(),
+            lb,
+            ub,
+            // test: |i| i<ub , step: |k| k+1,
+            test: Box::new(test),
+            step: Box::new(step),
             body: RefCell::new(vec![]),
         };
         Node::new_node(Stmt::Loop(loop_stmt))
@@ -309,6 +367,20 @@ mod tests {
         let j_loop_ref = Node::new_single_loop_dyn_ub("j", 0, move |i| ubound - i[0]);
         // creating loop i = 0, n
         let i_loop_ref = Node::new_single_loop("i", 0, ubound);
+        Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
+
+        assert_eq!(i_loop_ref.node_count(), 2);
+    }
+
+    #[test]
+    fn example_macro() {
+        // for i in 0..n step by 2
+        //     for j in 0 .. n - i
+        let n: usize = 100; // array dim
+        let ubound = n as i32; // loop bound
+        let j_loop_ref = loop_node!("j", fixed(0) => dynamic(move |i| ubound - i[0]));
+        // creating loop i = 0, n
+        let i_loop_ref = loop_node!("i", fixed(0) => fixed(ubound), step: |x| x + 2);
         Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
         assert_eq!(i_loop_ref.node_count(), 2);

@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "v3pluss"
+name = "dace"
 version = "0.1.0"
