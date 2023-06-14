@@ -48,7 +48,8 @@ impl Debug for LoopStmt {
 
 pub enum LoopBound {
     Fixed(i32),
-    Dynamic(fn(&IterVec) -> i32),
+    #[allow(clippy::type_complexity)]
+    Dynamic(Box<dyn Fn(&[i32]) -> i32>),
 }
 
 impl std::fmt::Debug for LoopBound {
@@ -115,6 +116,23 @@ impl Node {
             iv: ivar.to_string(),
             lb: LoopBound::Fixed(low),
             ub: LoopBound::Fixed(high),
+            // test: |i| i<ub , step: |k| k+1,
+            test: Box::new(|i, ub| i < ub),
+            step: Box::new(|i| i + 1),
+            body: RefCell::new(vec![]),
+        };
+        Node::new_node(Stmt::Loop(loop_stmt))
+    }
+
+    /// Create a new Node representing a simple loop with a fixed range.
+    pub fn new_single_loop_dyn_ub<F>(ivar: &str, low: i32, ub: F) -> Rc<Node>
+    where
+        for<'a> F: Fn(&'a [i32]) -> i32 + 'static,
+    {
+        let loop_stmt = LoopStmt {
+            iv: ivar.to_string(),
+            lb: LoopBound::Fixed(low),
+            ub: LoopBound::Dynamic(Box::new(ub)),
             // test: |i| i<ub , step: |k| k+1,
             test: Box::new(|i, ub| i < ub),
             step: Box::new(|i| i + 1),
@@ -280,6 +298,20 @@ mod tests {
         Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
         assert_eq!(i_loop_ref.node_count(), 6);
+    }
+
+    #[test]
+    fn example_dyn() {
+        // for i in 0..n
+        //     for j in 0 .. n - i
+        let n: usize = 100; // array dim
+        let ubound = n as i32; // loop bound
+        let j_loop_ref = Node::new_single_loop_dyn_ub("j", 0, move |i| ubound - i[0]);
+        // creating loop i = 0, n
+        let i_loop_ref = Node::new_single_loop("i", 0, ubound);
+        Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
+
+        assert_eq!(i_loop_ref.node_count(), 2);
     }
 
     #[test]
