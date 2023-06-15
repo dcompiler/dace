@@ -225,11 +225,11 @@ fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
     Node::extend_loop_body(&knk_loop_ref, &s_ref_a);
     Node::extend_loop_body(&knk_loop_ref, &s_ref_b);
     Node::extend_loop_body(&knk_loop_ref, &s_ref_tmp);
-    
+
     let jnj_loop_ref = Node::new_single_loop("j", 0, NJ as i32);
     Node::extend_loop_body(&knk_loop_ref, &s_ref_tmp);
     Node::extend_loop_body(&knk_loop_ref, &knk_loop_ref);
-    
+
     let ini_loop_ref1 = Node::new_single_loop("i", 0, NI as i32);
     Node::extend_loop_body(&ini_loop_ref1, &jnj_loop_ref);
 
@@ -237,7 +237,7 @@ fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
     Node::extend_loop_body(&knj_loop_ref, &s_ref_tmp);
     Node::extend_loop_body(&knj_loop_ref, &s_ref_c);
     Node::extend_loop_body(&knj_loop_ref, &s_ref_d);
-    
+
     let jnl_loop_ref = Node::new_single_loop("j", 0, NL as i32);
     Node::extend_loop_body(&jnj_loop_ref, &s_ref_d);
     Node::extend_loop_body(&jnj_loop_ref, &knj_loop_ref);
@@ -245,11 +245,8 @@ fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
     let ini_loop_ref2 = Node::new_single_loop("i", 0, NI as i32);
     Node::extend_loop_body(&ini_loop_ref2, &jnl_loop_ref);
 
-
     Node::new_node(Stmt::Block(vec![ini_loop_ref1, ini_loop_ref2]))
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -280,7 +277,6 @@ mod tests {
     #[test]
     fn test_syr2d() {
         assert_eq!(syr2d(1024, 1024).node_count(), 12);
-        
     }
     #[test]
     fn _2mm_test() {
