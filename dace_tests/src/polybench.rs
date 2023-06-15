@@ -4,7 +4,7 @@ use dace::ast::Stmt;
 use dace::loop_node;
 use std::rc::Rc;
 
-pub fn lu(n: usize) -> Rc<Node>{
+pub fn lu(n: usize) -> Rc<Node> {
     let ubound = n as i32;
     let ref_a_ij = Node::new_ref("A", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
@@ -43,7 +43,6 @@ pub fn lu(n: usize) -> Rc<Node>{
 
     i_loop_ref
 }
-
 
 fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
     let i_loop_ref = Node::new_single_loop("i", 0, M as i32);
