@@ -204,6 +204,84 @@ pub fn syr2d(n: usize, m: usize) -> Rc<Node> {
     i_loop_ref
 }
 
+pub fn gramschmidt_trace(n: usize, m: usize) -> Rc<Node> {
+    //nrm += A[i * N + k] * A[i * N + k];
+    let s_ref_a1 = Node::new_ref("a1", vec![n], move |ki| {
+        vec![ki[1] as usize * n + ki[0] as usize]
+    });
+
+    //R[k * N + k] = sqrt(nrm);
+    let s_ref_r1 = Node::new_ref("r1", vec![n], move |k| {
+        vec![k[0] as usize * n + k[0] as usize]
+    });
+
+    //Q[i * N + k] = A[i * N + k] / R[k * N + k];
+    let s_ref_a2 = Node::new_ref("a2", vec![n], move |ki| {
+        vec![ki[1] as usize * n + ki[0] as usize]
+    });
+    let s_ref_r1_copy = Node::new_ref("r1", vec![n], move |ki| {
+        vec![ki[0] as usize * n + ki[0] as usize]
+    });
+    let s_ref_q1 = Node::new_ref("q1", vec![n], move |ki| {
+        vec![ki[1] as usize * n + ki[0] as usize]
+    });
+
+
+    //R[k * N + j] = 0.0;
+    let s_ref_r2 = Node::new_ref("r2", vec![n], move |kj| {
+        vec![kj[0] as usize * n + kj[1] as usize]
+    });
+
+    //R[k * N + j] += Q[i * N + k] * A[i * N + j];
+    let s_ref_q2 = Node::new_ref("q2", vec![n], move |kji| {
+        vec![kji[2] as usize * n + kji[0] as usize]
+    });
+    let s_ref_a3 = Node::new_ref("a3", vec![n], move |kji| {
+        vec![kji[2] as usize * n + kji[1] as usize]
+    });
+    let s_ref_r3 = Node::new_ref("r3", vec![n], move |kji| {
+        vec![kji[0] as usize * n + kji[1] as usize]
+    });
+    //insert r3 clone here in this order
+
+    //A[i * N + j] = A[i * N + j] - Q[i * N + k] * R[k * N + j];
+    //insert a3 clone here in this order
+    //insert q2 clone here in this order
+    //insert r3 clone here in this order
+    //insert a3 clone here in this order
+
+    let k_loop_ref = Node::new_single_loop("k", 0, n as i32);
+    let i_loop_ref = Node::new_single_loop("i", 0, m as i32);
+    let i_loop_ref2 = Node::new_single_loop("i", 0, m as i32);
+    let j_loop_ref = loop_node!("j", |v : &[i32]| v[0] + 1 => n as i32);
+    let i_loop_ref3 = Node::new_single_loop("i", 0, m as i32);
+    let i_loop_ref4 = Node::new_single_loop("i", 0, m as i32);
+    Node::extend_loop_body(&k_loop_ref, &i_loop_ref);
+    Node::extend_loop_body(&i_loop_ref, &s_ref_a1);
+    Node::extend_loop_body(&i_loop_ref, &s_ref_a1.clone());
+    Node::extend_loop_body(&k_loop_ref, &s_ref_r1);
+    Node::extend_loop_body(&k_loop_ref, &i_loop_ref2);
+    Node::extend_loop_body(&i_loop_ref2, &s_ref_a2);
+    Node::extend_loop_body(&i_loop_ref2, &s_ref_r1_copy);
+    Node::extend_loop_body(&i_loop_ref2, &s_ref_q1);
+    Node::extend_loop_body(&k_loop_ref, &j_loop_ref);
+    Node::extend_loop_body(&j_loop_ref, &s_ref_r2);
+    Node::extend_loop_body(&j_loop_ref, &i_loop_ref3);
+    Node::extend_loop_body(&i_loop_ref3, &s_ref_q2);
+    Node::extend_loop_body(&i_loop_ref3, &s_ref_a3);
+    Node::extend_loop_body(&i_loop_ref3, &s_ref_r3);
+    Node::extend_loop_body(&i_loop_ref3, &s_ref_r3.clone());
+    Node::extend_loop_body(&j_loop_ref, &i_loop_ref4);
+    Node::extend_loop_body(&i_loop_ref4, &s_ref_a3.clone());
+    Node::extend_loop_body(&i_loop_ref4, &s_ref_q2.clone());
+    Node::extend_loop_body(&i_loop_ref4, &s_ref_r3.clone());
+    Node::extend_loop_body(&i_loop_ref4, &s_ref_a3.clone());
+
+    k_loop_ref
+}
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -233,5 +311,10 @@ mod tests {
     #[test]
     fn test_syr2d() {
         assert_eq!(syr2d(1024, 1024).node_count(), 12);
+    }
+
+    #[test]
+    fn test_gramschmidt() {
+        assert_eq!(gramschmidt_trace(1024, 1024).node_count(), 12);
     }
 }
