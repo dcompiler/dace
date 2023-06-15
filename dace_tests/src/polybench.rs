@@ -1,12 +1,10 @@
 #![allow(dead_code, non_snake_case)]
 use dace::ast::Node;
 use dace::ast::Stmt;
-use std::rc::Rc;
 use dace::loop_node;
+use std::rc::Rc;
 
-
-fn trmm_trace(M: usize, N:usize) -> Rc<Node> {
-
+fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
     let i_loop_ref = Node::new_single_loop("i", 0, M as i32);
     let j_loop_ref = Node::new_single_loop("j", 0, N as i32);
     let k_loop_ref = Node::new_single_loop("k", Node::get_lb(&i_loop_ref).unwrap() + 1, M as i32);
@@ -43,9 +41,9 @@ pub fn mvt(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
     // creating x1[i] = x1[i] + a[i][j] * y1[j];
-    let s_ref_x1: Rc<Node> = Node::new_ref("x1", vec![n], |ij| {vec![ij[0] as usize]});
-    let s_ref_a1 = Node::new_ref("a1", vec![n,n], |ij| {vec![ij[0] as usize, ij[1] as usize]});
-    let s_ref_y1 = Node::new_ref("y1", vec![n], |ij| {vec![ij[1] as usize]});
+    let s_ref_x1: Rc<Node> = Node::new_ref("x1", vec![n], |ij| vec![ij[0] as usize]);
+    let s_ref_a1 = Node::new_ref("a1", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let s_ref_y1 = Node::new_ref("y1", vec![n], |ij| vec![ij[1] as usize]);
 
     // creating loop j = 0, n { s_ref }
     let j_loop_ref = Node::new_single_loop("j", 0, ubound);
@@ -59,9 +57,9 @@ pub fn mvt(n: usize) -> Rc<Node> {
     Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
     //x2[i] = x2[i] + a[j][i] * y2[j];
-    let s_ref_x2: Rc<Node> = Node::new_ref("x2", vec![n], |ij| {vec![ij[0] as usize]});
-    let s_ref_a2 = Node::new_ref("a2", vec![n,n], |ij| {vec![ij[1] as usize, ij[0] as usize]});
-    let s_ref_y2 = Node::new_ref("y2", vec![n], |ij| {vec![ij[1] as usize]});
+    let s_ref_x2: Rc<Node> = Node::new_ref("x2", vec![n], |ij| vec![ij[0] as usize]);
+    let s_ref_a2 = Node::new_ref("a2", vec![n, n], |ij| vec![ij[1] as usize, ij[0] as usize]);
+    let s_ref_y2 = Node::new_ref("y2", vec![n], |ij| vec![ij[1] as usize]);
 
     // creating loop k = 0, n { s_ref }
     let k_loop_ref = Node::new_single_loop("k", 0, ubound);
@@ -83,16 +81,16 @@ pub fn trisolv(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
     // creating x[i] = b[i];
-    let s_ref_x1 = Node::new_ref("x", vec![n], |ij| {vec![ij[0] as usize]});
-    let s_ref_b = Node::new_ref("b", vec![n], |ij| {vec![ij[0] as usize]});
+    let s_ref_x1 = Node::new_ref("x", vec![n], |ij| vec![ij[0] as usize]);
+    let s_ref_b = Node::new_ref("b", vec![n], |ij| vec![ij[0] as usize]);
 
     // creating x[i] -= L[i][j] * x[j];
-    let s_ref_L1 = Node::new_ref("L", vec![n,n], |ij| {vec![ij[0] as usize, ij[1] as usize]});
-    let s_ref_x2  = Node::new_ref("x", vec![n], |ij| {vec![ij[1] as usize]});
-    let s_ref_x3 = Node::new_ref("x", vec![n], |ij| {vec![ij[0] as usize]});
+    let s_ref_L1 = Node::new_ref("L", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let s_ref_x2 = Node::new_ref("x", vec![n], |ij| vec![ij[1] as usize]);
+    let s_ref_x3 = Node::new_ref("x", vec![n], |ij| vec![ij[0] as usize]);
 
     // creating x[i] = x[i] / L[i][i]
-    let s_ref_L2 = Node::new_ref("L", vec![n,n], |ij| {vec![ij[0] as usize, ij[0] as usize]});
+    let s_ref_L2 = Node::new_ref("L", vec![n, n], |ij| vec![ij[0] as usize, ij[0] as usize]);
     // s_ref_x1
 
     let j_loop_ref = Node::new_single_loop_dyn_ub("j", 0, move |i| i[0]);
@@ -110,7 +108,6 @@ pub fn trisolv(n: usize) -> Rc<Node> {
     Node::extend_loop_body(&i_loop_ref, &s_ref_x1);
 
     i_loop_ref
-
 }
 
 pub fn syrk(n: usize, m: usize) -> Rc<Node> {
@@ -119,12 +116,20 @@ pub fn syrk(n: usize, m: usize) -> Rc<Node> {
     let ubound2 = m as i32;
 
     //creating C[i][j] = C[i][j] * beta
-    let s_ref_c1 = Node::new_ref("c", vec![n,n], |ijk| {vec![ijk[0] as usize, ijk[1] as usize]});
+    let s_ref_c1 = Node::new_ref("c", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
 
     // creating C[i][j] = C[i][j] + alpha * A[i][k] * A[j][k]
-    let s_ref_a1 = Node::new_ref("a1", vec![n,m], |ijk| {vec![ijk[0] as usize, ijk[2] as usize]});
-    let s_ref_a2 = Node::new_ref("a2", vec![n,m], |ijk| {vec![ijk[1] as usize, ijk[2] as usize]});
-    let s_ref_c2 = Node::new_ref("c", vec![n,n], |ijk| {vec![ijk[0] as usize, ijk[1] as usize]});
+    let s_ref_a1 = Node::new_ref("a1", vec![n, m], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let s_ref_a2 = Node::new_ref("a2", vec![n, m], |ijk| {
+        vec![ijk[1] as usize, ijk[2] as usize]
+    });
+    let s_ref_c2 = Node::new_ref("c", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
 
     let j_loop_ref = Node::new_single_loop("j", 0, ubound1);
     Node::extend_loop_body(&j_loop_ref, &s_ref_c1);
@@ -147,7 +152,6 @@ pub fn syrk(n: usize, m: usize) -> Rc<Node> {
 
     // combine two seperate loops
     Node::new_node(Stmt::Block(vec![i_loop_ref, k_loop_ref]))
-
 }
 
 pub fn syr2d(n: usize, m: usize) -> Rc<Node> {
@@ -156,15 +160,27 @@ pub fn syr2d(n: usize, m: usize) -> Rc<Node> {
     let ubound2 = m as i32;
 
     // creating C[i][j] *= beta;
-    let s_ref_c = Node::new_ref("c", vec![n,n], |ij| {vec![ij[0] as usize, ij[1] as usize]});
+    let s_ref_c = Node::new_ref("c", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
 
     // creating C[i][j] += A[j][k]*alpha*B[i][k] + B[j][k]*alpha*A[i][k];
-    let s_ref_a1 = Node::new_ref("a1", vec![n,m], |ijkl|{vec![ijkl[3] as usize, ijkl[2] as usize]});
-    let s_ref_b1 = Node::new_ref("b1", vec![n,m], |ijkl|{vec![ijkl[0] as usize, ijkl[2] as usize]});
-    let s_ref_b2 = Node::new_ref("b2", vec![n,m], |ijkl|{vec![ijkl[3] as usize, ijkl[2] as usize]});
-    let s_ref_a2 = Node::new_ref("a2", vec![n,m], |ijkl|{vec![ijkl[0] as usize, ijkl[2] as usize]});
-    let s_ref_c1 = Node::new_ref("c1", vec![n,n], |ijkl|{vec![ijkl[0] as usize, ijkl[3] as usize]});
-    let s_ref_c2 = Node::new_ref("c2", vec![n,n], |ijkl|{vec![ijkl[0] as usize, ijkl[3] as usize]});
+    let s_ref_a1 = Node::new_ref("a1", vec![n, m], |ijkl| {
+        vec![ijkl[3] as usize, ijkl[2] as usize]
+    });
+    let s_ref_b1 = Node::new_ref("b1", vec![n, m], |ijkl| {
+        vec![ijkl[0] as usize, ijkl[2] as usize]
+    });
+    let s_ref_b2 = Node::new_ref("b2", vec![n, m], |ijkl| {
+        vec![ijkl[3] as usize, ijkl[2] as usize]
+    });
+    let s_ref_a2 = Node::new_ref("a2", vec![n, m], |ijkl| {
+        vec![ijkl[0] as usize, ijkl[2] as usize]
+    });
+    let s_ref_c1 = Node::new_ref("c1", vec![n, n], |ijkl| {
+        vec![ijkl[0] as usize, ijkl[3] as usize]
+    });
+    let s_ref_c2 = Node::new_ref("c2", vec![n, n], |ijkl| {
+        vec![ijkl[0] as usize, ijkl[3] as usize]
+    });
 
     let l_loop_ref = loop_node!("l", 0 => |i : &[i32]| i[0]);
     Node::extend_loop_body(&l_loop_ref, &s_ref_a1);
@@ -186,9 +202,7 @@ pub fn syr2d(n: usize, m: usize) -> Rc<Node> {
     Node::extend_loop_body(&i_loop_ref, &k_loop_ref);
 
     i_loop_ref
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -213,11 +227,11 @@ mod tests {
 
     #[test]
     fn test_syrk() {
-        assert_eq!(syrk(256,256).node_count(), 12);
+        assert_eq!(syrk(256, 256).node_count(), 12);
     }
 
     #[test]
     fn test_syr2d() {
-        assert_eq!(syr2d(1024,1024).node_count(), 12);
+        assert_eq!(syr2d(1024, 1024).node_count(), 12);
     }
 }
