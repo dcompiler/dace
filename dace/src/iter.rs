@@ -27,12 +27,12 @@ impl Walk {
                 }
                 match &node.as_ref().stmt {
                     Stmt::Loop(children) => {
-                        if visited >= children.body.borrow().len() {
+                        if visited >= children.body.len() {
                             self.stack.pop();
                         } else {
                             self.stack.last_mut().unwrap().1 += 1;
                             self.stack
-                                .push((children.body.borrow()[visited].clone(), 0));
+                                .push((children.body[visited].clone(), 0));
                         }
                     }
                     Stmt::Ref(_) => {
@@ -72,9 +72,9 @@ mod test {
     #[test]
     fn loop_a_0() {
         // i = 0, n { a[0] }
-        let aref = Node::new_ref("A", vec![1], |_| vec![0]);
-        let aloop = Node::new_single_loop("i", 0, 10);
-        Node::extend_loop_body(&aloop, &aref);
+        let mut aref = Node::new_ref("A", vec![1], |_| vec![0]);
+        let mut aloop = Node::new_single_loop("i", 0, 10);
+        Node::extend_loop_body(&mut aloop, &mut aref);
 
         let awalk = Walk::new(&aloop);
         assert_eq!(awalk.fold(0, |cnt, _stmt| cnt + 1), 2);
@@ -83,13 +83,13 @@ mod test {
     #[test]
     fn loop_ij() {
         // i = 0, 1, {j = 0, 0 n { a[0] }; b[0]
-        let aref = Node::new_ref("A", vec![1], |_| vec![0]);
-        let jloop = Node::new_single_loop("j", 0, 10);
-        Node::extend_loop_body(&jloop, &aref);
-        let bref = Node::new_ref("B", vec![1], |_| vec![0]);
-        let iloop = Node::new_single_loop("i", 0, 1);
-        Node::extend_loop_body(&iloop, &jloop);
-        Node::extend_loop_body(&iloop, &bref);
+        let mut aref = Node::new_ref("A", vec![1], |_| vec![0]);
+        let mut jloop = Node::new_single_loop("j", 0, 10);
+        Node::extend_loop_body(&mut jloop, &mut aref);
+        let mut bref = Node::new_ref("B", vec![1], |_| vec![0]);
+        let mut iloop = Node::new_single_loop("i", 0, 1);
+        Node::extend_loop_body(&mut iloop, &mut jloop);
+        Node::extend_loop_body(&mut iloop, &mut bref);
         let awalk = Walk::new(&iloop);
         assert_eq!(awalk.fold(0, |cnt, _stmt| cnt + 1), 4);
     }

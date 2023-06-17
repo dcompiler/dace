@@ -42,17 +42,16 @@ mod test {
         let n: usize = 100; // array dim
         let ubound = n as i32; // loop bound
                                // creating A[i] B[i,i+1] C[i,i+1,i+2]
-        let s_ref_a = Node::new_ref("A", vec![n], |i| vec![i[0] as usize]);
-        let s_ref_b = Node::new_ref("B", vec![n, n], |i| vec![i[0] as usize, i[0] as usize + 1]);
-        let s_ref_c = Node::new_ref("C", vec![n, n, n], |i| {
+        let ref_a = Node::new_ref("A", vec![n], |i| vec![i[0] as usize]);
+        let ref_b = Node::new_ref("B", vec![n, n], |i| vec![i[0] as usize, i[0] as usize + 1]);
+        let ref_c = Node::new_ref("C", vec![n, n, n], |i| {
             vec![i[0] as usize, i[0] as usize + 1, i[0] as usize + 2]
         });
 
         // creating loop k = 0, n
         let mut iloop = Node::new_single_loop("i", 0, ubound);
-        Node::extend_loop_body(&iloop, &s_ref_a);
-        Node::extend_loop_body(&iloop, &s_ref_b);
-        Node::extend_loop_body(&iloop, &s_ref_c);
+	vec![ref_a, ref_b, ref_c].iter_mut()
+	    .for_each( |s| Node::extend_loop_body(&mut iloop, s) );
 
         let (tbl, size) = set_arybase(&mut iloop);
         assert_eq!(tbl.len(), 3);
@@ -61,19 +60,19 @@ mod test {
 
         assert_eq!(
             iloop
-                .loop_only(|lp| lp.body.borrow()[0].ref_only(|rf| rf.base).unwrap())
+                .loop_only(|lp| lp.body[0].ref_only(|rf| rf.base).unwrap())
                 .unwrap(),
             Some(0)
         );
         assert_eq!(
             iloop
-                .loop_only(|lp| lp.body.borrow()[1].ref_only(|rf| rf.base).unwrap())
+                .loop_only(|lp| lp.body[1].ref_only(|rf| rf.base).unwrap())
                 .unwrap(),
             Some(n)
         );
         assert_eq!(
             iloop
-                .loop_only(|lp| lp.body.borrow()[2].ref_only(|rf| rf.base).unwrap())
+                .loop_only(|lp| lp.body[2].ref_only(|rf| rf.base).unwrap())
                 .unwrap(),
             Some(n + n * n)
         );
