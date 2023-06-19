@@ -302,13 +302,14 @@ fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
     });
 
     let mut knk_loop_ref = Node::new_single_loop("k", 0, NK as i32);
+    let mut knk_loop_ref_clone = knk_loop_ref.clone();
     Node::extend_loop_body(&mut knk_loop_ref, &mut s_ref_a);
     Node::extend_loop_body(&mut knk_loop_ref, &mut s_ref_b);
     Node::extend_loop_body(&mut knk_loop_ref, &mut s_ref_tmp);
 
     let mut jnj_loop_ref = Node::new_single_loop("j", 0, NJ as i32);
     Node::extend_loop_body(&mut knk_loop_ref, &mut s_ref_tmp);
-    Node::extend_loop_body(&mut knk_loop_ref, &mut knk_loop_ref);
+    Node::extend_loop_body(&mut knk_loop_ref, &mut knk_loop_ref_clone);
 
     let mut ini_loop_ref1 = Node::new_single_loop("i", 0, NI as i32);
     Node::extend_loop_body(&mut ini_loop_ref1, &mut jnj_loop_ref);
