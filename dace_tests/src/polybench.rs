@@ -47,7 +47,8 @@ pub fn lu(n: usize) -> Rc<Node> {
 fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
     let mut i_loop_ref = Node::new_single_loop("i", 0, M as i32);
     let mut j_loop_ref = Node::new_single_loop("j", 0, N as i32);
-    let mut k_loop_ref = Node::new_single_loop("k", Node::get_lb(&i_loop_ref).unwrap() + 1, M as i32);
+    let mut k_loop_ref =
+        Node::new_single_loop("k", Node::get_lb(&i_loop_ref).unwrap() + 1, M as i32);
 
     // B[i * N + j] += A[k * M + i] * B[k * N + j];
     let mut a_ref = Node::new_ref("A", vec![N, M], |ijk| {
