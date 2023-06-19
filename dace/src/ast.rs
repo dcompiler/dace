@@ -208,12 +208,12 @@ impl Node {
 
     /// Extend the body of a loop node with another node.
     pub fn extend_loop_body(lup: &mut Rc<Node>, stmt: &mut Rc<Node>) {
-	let lup_node = unsafe{ Rc::get_mut_unchecked(lup) };
-	lup_node.loop_only_mut( |lp| lp.body.push(Rc::clone(stmt)) );
-	
+        let lup_node = unsafe { Rc::get_mut_unchecked(lup) };
+        lup_node.loop_only_mut(|lp| lp.body.push(Rc::clone(stmt)));
+
         // officiating the parent-child relationship
-	let stmt_node = unsafe{ Rc::get_mut_unchecked(stmt) };
-	stmt_node.parent = Rc::downgrade(lup);
+        let stmt_node = unsafe { Rc::get_mut_unchecked(stmt) };
+        stmt_node.parent = Rc::downgrade(lup);
     }
 
     pub fn loop_only<U, F>(&self, f: F) -> Option<U>
@@ -351,8 +351,9 @@ mod tests {
 
         // creating loop k = 0, n { s_ref }
         let mut k_loop = Node::new_single_loop("k", 0, ubound);
-	vec![ref_c, ref_a, ref_b].iter_mut()
-	    .for_each( |s| Node::extend_loop_body(&mut k_loop, s) );
+        vec![ref_c, ref_a, ref_b]
+            .iter_mut()
+            .for_each(|s| Node::extend_loop_body(&mut k_loop, s));
         // creating loop j = 0, n
         let mut j_loop = Node::new_single_loop("j", 0, ubound);
         Node::extend_loop_body(&mut j_loop, &mut k_loop);
@@ -403,9 +404,9 @@ mod tests {
         let ref_y1 = Node::new_ref("y1", vec![n], |ij| vec![ij[1] as usize]);
 
         let mut j_loop = Node::new_single_loop("j", 0, ubound);
-	vec![ref_x1, ref_a, ref_y1].iter_mut()
-	    .for_each( |s|		       						
-		       Node::extend_loop_body(&mut j_loop, s) );
+        vec![ref_x1, ref_a, ref_y1]
+            .iter_mut()
+            .for_each(|s| Node::extend_loop_body(&mut j_loop, s));
 
         let mut i_loop = Node::new_single_loop("i", 0, ubound);
         Node::extend_loop_body(&mut i_loop, &mut j_loop);

@@ -31,8 +31,7 @@ impl Walk {
                             self.stack.pop();
                         } else {
                             self.stack.last_mut().unwrap().1 += 1;
-                            self.stack
-                                .push((children.body[visited].clone(), 0));
+                            self.stack.push((children.body[visited].clone(), 0));
                         }
                     }
                     Stmt::Ref(_) => {

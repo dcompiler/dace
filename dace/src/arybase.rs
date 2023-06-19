@@ -50,8 +50,9 @@ mod test {
 
         // creating loop k = 0, n
         let mut iloop = Node::new_single_loop("i", 0, ubound);
-	vec![ref_a, ref_b, ref_c].iter_mut()
-	    .for_each( |s| Node::extend_loop_body(&mut iloop, s) );
+        vec![ref_a, ref_b, ref_c]
+            .iter_mut()
+            .for_each(|s| Node::extend_loop_body(&mut iloop, s));
 
         let (tbl, size) = set_arybase(&mut iloop);
         assert_eq!(tbl.len(), 3);
