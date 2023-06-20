@@ -23,15 +23,18 @@ pub fn lu(n: usize) -> Rc<Node> {
     Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ik);
     Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_kj);
     Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ij);
+    Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ij);
 
     let mut j_loop_lower_ref = loop_node!("j", 0 => move |ijk:&[i32]| ijk[0]);
     Node::extend_loop_body(&mut j_loop_lower_ref, &mut k_loop_ref_j);
     Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_jj);
     Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_ij);
+    Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_ij);
 
     let mut k_loop_ref_i = loop_node!("k", 0 => move |ijk:&[i32]| ijk[0]);
     Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ik);
     Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_kj);
+    Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ij);
     Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ij);
 
     let mut j_loop_upper_ref = loop_node!("j", move |ijk:&[i32]| ijk[0] => ubound);
@@ -506,7 +509,7 @@ mod tests {
     #[test]
     fn lu_test() {
         let mm = lu(100);
-        assert_eq!(mm.node_count(), 13);
+        assert_eq!(mm.node_count(), 16);
     }
 
     #[test]
