@@ -137,12 +137,9 @@ impl Node {
         })
     }
 
-    pub fn new_ref<F>(
-        ary_nm: &str,
-        ary_dim: Vec<usize>,
-        ary_sub: F,
-    ) -> Rc<Node>
-        where F : for<'a> Fn(&'a [i32]) -> AryAcc + 'static
+    pub fn new_ref<F>(ary_nm: &str, ary_dim: Vec<usize>, ary_sub: F) -> Rc<Node>
+    where
+        F: for<'a> Fn(&'a [i32]) -> AryAcc + 'static,
     {
         let ref_stmt = AryRef {
             name: ary_nm.to_string(),

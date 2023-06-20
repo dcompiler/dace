@@ -389,40 +389,39 @@ pub fn cholesky(n: usize) -> Rc<Node> {
 
 pub fn gramschmidt_trace(n: usize, m: usize) -> Rc<Node> {
     //nrm += A[i * N + k] * A[i * N + k];
-    let s_ref_a1 = Node::new_ref("a1", vec![n], move |ki| {
+    let mut s_ref_a1 = Node::new_ref("a1", vec![n], move |ki| {
         vec![ki[1] as usize * n + ki[0] as usize]
     });
 
     //R[k * N + k] = sqrt(nrm);
-    let s_ref_r1 = Node::new_ref("r1", vec![n], move |k| {
+    let mut s_ref_r1 = Node::new_ref("r1", vec![n], move |k| {
         vec![k[0] as usize * n + k[0] as usize]
     });
 
     //Q[i * N + k] = A[i * N + k] / R[k * N + k];
-    let s_ref_a2 = Node::new_ref("a2", vec![n], move |ki| {
+    let mut s_ref_a2 = Node::new_ref("a2", vec![n], move |ki| {
         vec![ki[1] as usize * n + ki[0] as usize]
     });
-    let s_ref_r1_copy = Node::new_ref("r1", vec![n], move |ki| {
+    let mut s_ref_r1_copy = Node::new_ref("r1", vec![n], move |ki| {
         vec![ki[0] as usize * n + ki[0] as usize]
     });
-    let s_ref_q1 = Node::new_ref("q1", vec![n], move |ki| {
+    let mut s_ref_q1 = Node::new_ref("q1", vec![n], move |ki| {
         vec![ki[1] as usize * n + ki[0] as usize]
     });
 
-
     //R[k * N + j] = 0.0;
-    let s_ref_r2 = Node::new_ref("r2", vec![n], move |kj| {
+    let mut s_ref_r2 = Node::new_ref("r2", vec![n], move |kj| {
         vec![kj[0] as usize * n + kj[1] as usize]
     });
 
     //R[k * N + j] += Q[i * N + k] * A[i * N + j];
-    let s_ref_q2 = Node::new_ref("q2", vec![n], move |kji| {
+    let mut s_ref_q2 = Node::new_ref("q2", vec![n], move |kji| {
         vec![kji[2] as usize * n + kji[0] as usize]
     });
-    let s_ref_a3 = Node::new_ref("a3", vec![n], move |kji| {
+    let mut s_ref_a3 = Node::new_ref("a3", vec![n], move |kji| {
         vec![kji[2] as usize * n + kji[1] as usize]
     });
-    let s_ref_r3 = Node::new_ref("r3", vec![n], move |kji| {
+    let mut s_ref_r3 = Node::new_ref("r3", vec![n], move |kji| {
         vec![kji[0] as usize * n + kji[1] as usize]
     });
     //insert r3 clone here in this order
@@ -433,37 +432,35 @@ pub fn gramschmidt_trace(n: usize, m: usize) -> Rc<Node> {
     //insert r3 clone here in this order
     //insert a3 clone here in this order
 
-    let k_loop_ref = Node::new_single_loop("k", 0, n as i32);
-    let i_loop_ref = Node::new_single_loop("i", 0, m as i32);
-    let i_loop_ref2 = Node::new_single_loop("i", 0, m as i32);
-    let j_loop_ref = loop_node!("j", |v : &[i32]| v[0] + 1 => n as i32);
-    let i_loop_ref3 = Node::new_single_loop("i", 0, m as i32);
-    let i_loop_ref4 = Node::new_single_loop("i", 0, m as i32);
-    Node::extend_loop_body(&k_loop_ref, &i_loop_ref);
-    Node::extend_loop_body(&i_loop_ref, &s_ref_a1);
-    Node::extend_loop_body(&i_loop_ref, &s_ref_a1.clone());
-    Node::extend_loop_body(&k_loop_ref, &s_ref_r1);
-    Node::extend_loop_body(&k_loop_ref, &i_loop_ref2);
-    Node::extend_loop_body(&i_loop_ref2, &s_ref_a2);
-    Node::extend_loop_body(&i_loop_ref2, &s_ref_r1_copy);
-    Node::extend_loop_body(&i_loop_ref2, &s_ref_q1);
-    Node::extend_loop_body(&k_loop_ref, &j_loop_ref);
-    Node::extend_loop_body(&j_loop_ref, &s_ref_r2);
-    Node::extend_loop_body(&j_loop_ref, &i_loop_ref3);
-    Node::extend_loop_body(&i_loop_ref3, &s_ref_q2);
-    Node::extend_loop_body(&i_loop_ref3, &s_ref_a3);
-    Node::extend_loop_body(&i_loop_ref3, &s_ref_r3);
-    Node::extend_loop_body(&i_loop_ref3, &s_ref_r3.clone());
-    Node::extend_loop_body(&j_loop_ref, &i_loop_ref4);
-    Node::extend_loop_body(&i_loop_ref4, &s_ref_a3.clone());
-    Node::extend_loop_body(&i_loop_ref4, &s_ref_q2.clone());
-    Node::extend_loop_body(&i_loop_ref4, &s_ref_r3.clone());
-    Node::extend_loop_body(&i_loop_ref4, &s_ref_a3.clone());
+    let mut k_loop_ref = Node::new_single_loop("k", 0, n as i32);
+    let mut i_loop_ref = Node::new_single_loop("i", 0, m as i32);
+    let mut i_loop_ref2 = Node::new_single_loop("i", 0, m as i32);
+    let mut j_loop_ref = loop_node!("j", |v : &[i32]| v[0] + 1 => n as i32);
+    let mut i_loop_ref3 = Node::new_single_loop("i", 0, m as i32);
+    let mut i_loop_ref4 = Node::new_single_loop("i", 0, m as i32);
+    Node::extend_loop_body(&mut k_loop_ref, &mut i_loop_ref);
+    Node::extend_loop_body(&mut i_loop_ref, &mut s_ref_a1);
+    Node::extend_loop_body(&mut i_loop_ref, &mut s_ref_a1.clone());
+    Node::extend_loop_body(&mut k_loop_ref, &mut s_ref_r1);
+    Node::extend_loop_body(&mut k_loop_ref, &mut i_loop_ref2);
+    Node::extend_loop_body(&mut i_loop_ref2, &mut s_ref_a2);
+    Node::extend_loop_body(&mut i_loop_ref2, &mut s_ref_r1_copy);
+    Node::extend_loop_body(&mut i_loop_ref2, &mut s_ref_q1);
+    Node::extend_loop_body(&mut k_loop_ref, &mut j_loop_ref);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_r2);
+    Node::extend_loop_body(&mut j_loop_ref, &mut i_loop_ref3);
+    Node::extend_loop_body(&mut i_loop_ref3, &mut s_ref_q2);
+    Node::extend_loop_body(&mut i_loop_ref3, &mut s_ref_a3);
+    Node::extend_loop_body(&mut i_loop_ref3, &mut s_ref_r3);
+    Node::extend_loop_body(&mut i_loop_ref3, &mut s_ref_r3.clone());
+    Node::extend_loop_body(&mut j_loop_ref, &mut i_loop_ref4);
+    Node::extend_loop_body(&mut i_loop_ref4, &mut s_ref_a3.clone());
+    Node::extend_loop_body(&mut i_loop_ref4, &mut s_ref_q2.clone());
+    Node::extend_loop_body(&mut i_loop_ref4, &mut s_ref_r3.clone());
+    Node::extend_loop_body(&mut i_loop_ref4, &mut s_ref_a3.clone());
 
     k_loop_ref
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -515,5 +512,10 @@ mod tests {
     #[test]
     fn test_cholesky() {
         assert_eq!(cholesky(1024).node_count(), 17)
+    }
+
+    #[test]
+    fn gram_schmidt_test() {
+        assert_eq!(gramschmidt_trace(1024, 1024).node_count(), 21);
     }
 }
