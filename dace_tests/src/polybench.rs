@@ -251,16 +251,13 @@ pub fn syr2d(n: usize, m: usize) -> Rc<Node> {
 fn gemm(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
-    let mut A0 = Node::new_ref("A0", vec![n, n], |ijk| {
+    let mut A0 = Node::new_ref("A", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[2] as usize]
     });
-    let mut B0 = Node::new_ref("B0", vec![n, n], |ijk| {
+    let mut B0 = Node::new_ref("B", vec![n, n], |ijk| {
         vec![ijk[2] as usize, ijk[1] as usize]
     });
-    let mut C0 = Node::new_ref("C0", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-    let mut C1 = Node::new_ref("C1", vec![n, n], |ijk| {
+    let mut C0 = Node::new_ref("C", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
 
@@ -268,62 +265,15 @@ fn gemm(n: usize) -> Rc<Node> {
     Node::extend_loop_body(&mut k_loop_ref, &mut A0);
     Node::extend_loop_body(&mut k_loop_ref, &mut B0);
     Node::extend_loop_body(&mut k_loop_ref, &mut C0);
-    Node::extend_loop_body(&mut k_loop_ref, &mut C1);
-
-    let mut C2 = Node::new_ref("C2", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-    let mut C3 = Node::new_ref("C3", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
+    Node::extend_loop_body(&mut k_loop_ref, &mut C0.clone());
 
     let mut j_loop_ref = loop_node!("j", 0 => ubound);
-    Node::extend_loop_body(&mut j_loop_ref, &mut C2);
-    Node::extend_loop_body(&mut j_loop_ref, &mut C3);
+    Node::extend_loop_body(&mut j_loop_ref, &mut C0.clone());
+    Node::extend_loop_body(&mut j_loop_ref, &mut C0.clone());
     Node::extend_loop_body(&mut j_loop_ref, &mut k_loop_ref);
 
     let mut i_loop_ref = loop_node!("i", 0 => ubound);
     Node::extend_loop_body(&mut i_loop_ref, &mut j_loop_ref);
-
-    i_loop_ref
-}
-
-fn gemm(n: usize) -> Rc<Node> {
-    let ubound = n as i32;
-
-    let A0 = Node::new_ref("A0", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[2] as usize]
-    });
-    let B0 = Node::new_ref("B0", vec![n, n], |ijk| {
-        vec![ijk[2] as usize, ijk[1] as usize]
-    });
-    let C0 = Node::new_ref("C0", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-    let C1 = Node::new_ref("C1", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-
-    let k_loop_ref = loop_node!("k", 0 => ubound);
-    Node::extend_loop_body(&k_loop_ref, &A0);
-    Node::extend_loop_body(&k_loop_ref, &B0);
-    Node::extend_loop_body(&k_loop_ref, &C0);
-    Node::extend_loop_body(&k_loop_ref, &C1);
-
-    let C2 = Node::new_ref("C2", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-    let C3 = Node::new_ref("C3", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-
-    let j_loop_ref = loop_node!("j", 0 => ubound);
-    Node::extend_loop_body(&j_loop_ref, &C2);
-    Node::extend_loop_body(&j_loop_ref, &C3);
-    Node::extend_loop_body(&j_loop_ref, &k_loop_ref);
-
-    let i_loop_ref = loop_node!("i", 0 => ubound);
-    Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
 
     i_loop_ref
 }
@@ -507,6 +457,8 @@ pub fn gramschmidt_trace(n: usize, m: usize) -> Rc<Node> {
 
 #[cfg(test)]
 mod tests {
+    use tracing_subscriber::EnvFilter;
+
     use super::*;
     fn trmm_trace_test() {
         let M = 1024;
@@ -538,7 +490,17 @@ mod tests {
 
     #[test]
     fn test_gemm() {
-        assert_eq!(gemm(128).node_count(), 9);
+        use std::time::Instant;
+        tracing_subscriber::fmt()
+            .with_env_filter(EnvFilter::from_env("LOG_LEVEL"))
+            .init();
+        let mut trace = gemm(128);
+        let start = Instant::now();
+        // let hist = static_rd::trace::trace(&mut trace);
+        let hist = static_rd::trace::tracing_ri(&mut trace);
+        let end = Instant::now();
+        println!("gemm trace time: {:?}", end - start);
+        println!("hist: {}", hist);
     }
 
     #[test]
