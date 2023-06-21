@@ -63,6 +63,7 @@ pub struct AryRef {
     pub dim: Vec<usize>,
     /// Subscript expressions: one function for each data dimension.  
     /// Each function takes the indices of its loop nest and returns indices of the array access.
+    #[allow(clippy::type_complexity)]
     pub sub: Box<dyn for<'a> Fn(&'a [i32]) -> AryAcc>,
     pub base: Option<usize>,
 }
@@ -330,7 +331,7 @@ mod tests {
             sub: Box::new(|iv| vec![(iv[0] as usize) + 1]),
             base: None,
         };
-        assert_eq!((ar.sub)(&vec![1]), [2]);
+        assert_eq!((ar.sub)(&[1]), [2]);
     }
 
     #[test]
