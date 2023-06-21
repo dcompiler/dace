@@ -45,7 +45,7 @@ impl fmt::Display for Hist {
         let mut hvec = self.to_vec();
         let tot = hvec.iter().fold(0, |acc, x| acc + x.1);
         if !hvec.is_empty() {
-            writeln!(f, "Reuse distance histogram: \n\t{} distance value(s), min {:?}, max {:?}\n\t{} accesses",
+            writeln!(f, "Reuse distance histogram:\n\t{} distance value(s), min {:?}, max {:?}\n\t{} accesses",
                      hvec.len(), hvec[0].0, hvec[hvec.len() - 1].0, tot)?;
             if hvec[hvec.len() - 1].0.is_none() {
                 writeln!(f, "\t({} first accesses)", hvec[hvec.len() - 1].1)?;
