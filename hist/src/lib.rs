@@ -1,20 +1,11 @@
-use serde::{Deserialize, Serialize};
-// use serde_derive::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::fmt;
 
 //use csv::WriterBuilder;
 
-#[derive(Serialize, Deserialize)]
 pub struct Hist {
     hist: HashMap<Option<usize>, usize>,
     // attrs: HashMap<String,String>
-}
-
-impl Default for Hist {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl Hist {
@@ -43,22 +34,23 @@ impl Hist {
     }
 }
 
+impl Default for Hist {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl fmt::Display for Hist {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut hvec = self.to_vec();
         let tot = hvec.iter().fold(0, |acc, x| acc + x.1);
-
-        writeln!(
-            f,
-            "Reuse distance histogram: \n\t{} distance value(s), min {:?}, max {:?}\n\t{} accesses",
-            hvec.len(),
-            hvec[0].0,
-            hvec[hvec.len() - 1].0,
-            tot
-        )?;
-        if hvec[hvec.len() - 1].0.is_none() {
-            writeln!(f, "\t({} first accesses)", hvec[hvec.len() - 1].1)?;
-            hvec.pop();
+        if !hvec.is_empty() {
+            writeln!(f, "Reuse distance histogram:\n\t{} distance value(s), min {:?}, max {:?}\n\t{} accesses",
+                     hvec.len(), hvec[0].0, hvec[hvec.len() - 1].0, tot)?;
+            if hvec[hvec.len() - 1].0.is_none() {
+                writeln!(f, "\t({} first accesses)", hvec[hvec.len() - 1].1)?;
+                hvec.pop();
+            }
         }
         writeln!(f, "value, count")?;
         hvec.into_iter()
@@ -85,7 +77,7 @@ mod tests {
 
         assert_eq!(
             format!("{}", h),
-            "Reuse distance histogram: 
+            "Reuse distance histogram:
 	3 distance value(s), min Some(1), max None
 	4 accesses
 	(1 first accesses)
