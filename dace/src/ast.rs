@@ -63,7 +63,8 @@ pub struct AryRef {
     pub dim: Vec<usize>,
     /// Subscript expressions: one function for each data dimension.  
     /// Each function takes the indices of its loop nest and returns indices of the array access.
-    pub sub: Box<dyn for<'a> Fn(&'a IterVec) -> AryAcc>,
+    #[allow(clippy::type_complexity)]
+    pub sub: Box<dyn for<'a> Fn(&'a [i32]) -> AryAcc>,
     pub base: Option<usize>,
 }
 
@@ -137,11 +138,10 @@ impl Node {
         })
     }
 
-    pub fn new_ref(
-        ary_nm: &str,
-        ary_dim: Vec<usize>,
-        ary_sub: fn(&Vec<i32>) -> Vec<usize>,
-    ) -> Rc<Node> {
+    pub fn new_ref<F>(ary_nm: &str, ary_dim: Vec<usize>, ary_sub: F) -> Rc<Node>
+    where
+        F: for<'a> Fn(&'a [i32]) -> AryAcc + 'static,
+    {
         let ref_stmt = AryRef {
             name: ary_nm.to_string(),
             dim: ary_dim,
@@ -331,7 +331,7 @@ mod tests {
             sub: Box::new(|iv| vec![(iv[0] as usize) + 1]),
             base: None,
         };
-        assert_eq!((ar.sub)(&vec![1]), [2]);
+        assert_eq!((ar.sub)(&[1]), [2]);
     }
 
     #[test]
