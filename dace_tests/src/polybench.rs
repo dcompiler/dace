@@ -455,6 +455,25 @@ pub fn gramschmidt_trace(n: usize, m: usize) -> Rc<Node> {
     k_loop_ref
 }
 
+pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
+    let mut mat_a_ref = Node::new_ref("A", vec![ni, nj], |ij| {
+        vec![ij[0] as usize, ij[1] as usize]
+    });
+
+    let mut mat_b_ref = Node::new_ref("B", vec![ni, nj], |ij| {
+        vec![ij[0] as usize, ij[1] as usize]
+    });
+
+    let mut i_ni_loop_ref = Node::new_single_loop("i", 1, (ni - 1) as i32);
+    let mut j_nj_loop_ref = Node::new_single_loop("j", 1, (nj - 1) as i32);
+
+    Node::extend_loop_body(&mut j_nj_loop_ref, &mut mat_a_ref);
+    Node::extend_loop_body(&mut j_nj_loop_ref, &mut mat_b_ref);
+    Node::extend_loop_body(&mut i_ni_loop_ref, &mut j_nj_loop_ref);
+
+    Node::new_node(Stmt::Block(vec![i_ni_loop_ref]))
+}
+
 #[cfg(test)]
 mod tests {
     use tracing_subscriber::EnvFilter;
