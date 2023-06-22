@@ -78,6 +78,13 @@ fn trace_rec(
         Stmt::Block(blk) => blk
             .iter()
             .for_each(|s| trace_rec(s, ivec.clone(), sim, hist, data_accesses)),
+        Stmt::Branch(stmt) => {
+            if (stmt.cond)(ivec) {
+                trace_rec(&stmt.then_body, ivec.clone(), sim, hist, data_accesses)
+            } else if let Some(else_body) = &stmt.else_body {
+                trace_rec(else_body, ivec.clone(), sim, hist, data_accesses)
+            }
+        }
     }
 }
 
@@ -180,6 +187,13 @@ fn trace_ri(
             // debug!("trace_ri block ref: {:#?}", code);
             blk.iter()
                 .for_each(|s| trace_ri(s, LAT_hash, ivec.clone(), hist))
+        }
+        Stmt::Branch(stmt) => {
+            if (stmt.cond)(ivec) {
+                trace_ri(&stmt.then_body, LAT_hash, ivec, hist)
+            } else if let Some(else_body) = &stmt.else_body {
+                trace_ri(else_body, LAT_hash, ivec, hist)
+            }
         }
     }
 }

@@ -16,6 +16,14 @@ pub enum Stmt {
     /// A statement is a sequence of array references
     Ref(AryRef),
     Block(Vec<Rc<Node>>),
+    Branch(BranchStmt),
+}
+
+pub struct BranchStmt {
+    #[allow(clippy::type_complexity)]
+    pub cond: Box<dyn Fn(&[i32]) -> bool>,
+    pub then_body: Rc<Node>,
+    pub else_body: Option<Rc<Node>>,
 }
 
 pub struct LoopStmt {
@@ -37,6 +45,15 @@ impl Debug for LoopStmt {
             .field("lb", &self.lb)
             .field("ub", &self.ub)
             .field("body", &self.body)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Debug for BranchStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BranchStmt")
+            .field("then", &self.then_body)
+            .field("else", &self.else_body)
             .finish_non_exhaustive()
     }
 }
@@ -308,6 +325,11 @@ impl Node {
                     .iter()
                     .map(|x| x.as_ref().node_count())
                     .sum::<u32>()
+            }
+            Stmt::Branch(stmt) => {
+                stmt.then_body.node_count()
+                    + stmt.else_body.as_ref().map(|x| x.node_count()).unwrap_or(0)
+                    + 1
             }
         }
     }
