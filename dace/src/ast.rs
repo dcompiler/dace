@@ -146,6 +146,24 @@ macro_rules! loop_node {
     };
 }
 
+#[macro_export]
+macro_rules! branch_node {
+    (if ($cond:expr) {$then:tt}) => {
+        $crate::ast::Node::new_node($crate::ast::Stmt::Branch($crate::ast::BranchStmt {
+            cond: Box::new($cond),
+            then_body: $then,
+            else_body: None,
+        }))
+    };
+    (if ($cond:expr) {$then:tt} else {$else:tt}) => {
+        $crate::ast::Node::new_node($crate::ast::Stmt::Branch($crate::ast::BranchStmt {
+            cond: Box::new($cond),
+            then_body: $then,
+            else_body: Some($else),
+        }))
+    };
+}
+
 impl Node {
     /// Create a new Node with a given statement.
     pub fn new_node(a_stmt: Stmt) -> Rc<Node> {
@@ -412,6 +430,49 @@ mod tests {
         Node::extend_loop_body(&mut i_loop, &mut j_loop);
 
         assert_eq!(i_loop.node_count(), 2);
+    }
+    #[test]
+    fn example_if_then() {
+        // for i in 0..n step by 2
+        let ubound = 100; // loop bound
+
+        let ref_a = Node::new_ref("A", vec![100], |i| vec![i[0] as usize]);
+
+        let mut branch = branch_node! {
+            if (|ivec| ivec[0] & 1 == 0) {
+                ref_a
+            }
+        };
+
+        // creating loop i = 0, n
+        let mut i_loop = loop_node!("i", 0 => ubound, step: |x| x + 2);
+        Node::extend_loop_body(&mut i_loop, &mut branch);
+
+        assert_eq!(i_loop.node_count(), 3);
+    }
+
+    #[test]
+    fn example_if_then_else() {
+        // for i in 0..n step by 2
+        let ubound = 100; // loop bound
+
+        let ref_a = Node::new_ref("A", vec![100], |i| vec![i[0] as usize]);
+
+        let ref_b = Node::new_ref("B", vec![100], |i| vec![i[0] as usize]);
+
+        let mut branch = branch_node! {
+            if (|ivec| ivec[0] & 1 == 0) {
+                ref_a
+            } else {
+                ref_b
+            }
+        };
+
+        // creating loop i = 0, n
+        let mut i_loop = loop_node!("i", 0 => ubound, step: |x| x + 2);
+        Node::extend_loop_body(&mut i_loop, &mut branch);
+
+        assert_eq!(i_loop.node_count(), 4);
     }
 
     #[test]
