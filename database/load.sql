@@ -18,5 +18,5 @@ VALUES
     ("gemm"),
     ("2mm"),
     ("cholesky"),
-    ("matmul"),
+    ("matmul");
 
