@@ -53,7 +53,7 @@ fn trace_rec(
     }
 }
 
-pub fn trace(code: &mut Rc<Node>, lru_type: &str) -> (Hist, Hist, Reuse, Reuse) {
+pub fn trace(code: &mut Rc<Node>, lru_type: &str) -> (Hist, Hist, Reuse, Reuse, ListSerializable<usize>) {
     let mut accesses_count: ListSerializable<usize> = ListSerializable::<usize>::new();
 
     set_arybase(code);
@@ -64,7 +64,9 @@ pub fn trace(code: &mut Rc<Node>, lru_type: &str) -> (Hist, Hist, Reuse, Reuse) 
         &mut accesses_count,
     );
 
-    calculate::calculate_trace(&accesses_count, lru_type)
+    let result = calculate::calculate_trace(&accesses_count, lru_type);
+
+    (result.0, result.1, result.2, result.3, accesses_count)
 }
 
 

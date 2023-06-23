@@ -2,7 +2,7 @@
 use dace::ast::Node;
 use std::rc::Rc;
 
-mod polybench;
+pub mod polybench;
 
 pub fn matmul(n: usize) -> Rc<Node> {
     // n: usize is array dim

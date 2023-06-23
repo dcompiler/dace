@@ -7,9 +7,7 @@ pub fn connectToDB() -> mysql::PooledConn{
     let endpoint = env::var("db_endpoint").expect("db_endpoint must be set");
     let name = env::var("db_name").expect("db_name must be set");
 
-    let mut builder = OptsBuilder::default();
-
-    builder
+    let builder = OptsBuilder::default()
         .user(Some(username))
         .pass(Some(password))
         .ip_or_hostname(Some(endpoint))

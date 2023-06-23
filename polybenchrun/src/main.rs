@@ -5,7 +5,8 @@ use mysql;
 use tracer::trace::trace;
 use std::{env, fmt::format};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 4 {
         println!("Format:   exe   lru_mode   test_mode   data1,data2,data3,data4,...");
@@ -40,15 +41,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let result = trace(&mut loop_code, &lru_mode);
 
-    let serialized_access_data = serde_json::to_string(&access_data)?;
-    let serialized_result_data = serde_json::to_string(&result)?;
+    let serialized_access_data = serde_json::to_string(&result.4)?;
+    let serialized_result_data = serde_json::to_string(&result.0)?;
 
     let bucket = "lru-data";
     let accesses_path = format!("accesses_{}_{}_{}", *t_mode, *lru_mode, *argdata);
     let hist_path = format!("hist_{}_{}_{}", *t_mode, *lru_mode, *argdata);
 
-    aws_utilities::save_serialized(serialized_access_data, bucket, accesses_path.as_str()).await;
-    aws_utilities::save_serialized(serialized_result_data, bucket, hist_path.as_str()).await;
-
+    aws_utilities::s3::save_serialized(&serialized_access_data, bucket, accesses_path.as_str()).await?;
+    aws_utilities::s3::save_serialized(&serialized_result_data, bucket, hist_path.as_str()).await?;
     Ok(())
 }
