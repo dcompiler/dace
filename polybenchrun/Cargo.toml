@@ -7,11 +7,9 @@ edition = "2021"
 
 [dependencies]
 hist = { path = "../hist" }
-static_rd = { path = "../static_rd" }
+tracer = { path = "../tracer" }
 dace = { path = "../dace" }
 list_serializable = { path = "../list_serializable" }
 serde_json = "1.0.97"
 aws_utilities = { path = "../aws_utilities" }
-
-
-
+mysql = "24.0.0"

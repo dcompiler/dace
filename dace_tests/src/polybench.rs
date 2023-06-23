@@ -630,11 +630,11 @@ mod tests {
             .init();
         let mut trace = gemm(128);
         let start = Instant::now();
-        // let hist = static_rd::trace::trace(&mut trace);
-        let hist = static_rd::trace::tracing_ri(&mut trace);
+        // let hist = tracer::trace::trace(&mut trace);
+        let hist = tracer::trace::trace(&mut trace, "Olken");
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
-        println!("hist: {}", hist);
+        println!("hist: {}", hist.0);
     }
 
     #[test]

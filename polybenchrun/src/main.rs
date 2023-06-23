@@ -1,8 +1,9 @@
 use aws_utilities;
 use dace_tests::polybench::{_2mm, _3mm, matmul};
 use list_serializable;
-use static_rd::trace::trace;
-use std::env;
+use mysql;
+use tracer::trace::trace;
+use std::{env, fmt::format};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -14,6 +15,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let lru_mode = &args[1];
     let t_mode = &args[2];
     let argdata = &args[3];
+
+    let conn = aws_utilities::rds::connectToDB();
 
     let split: Vec<&str> = argdata.split(',').collect();
 
@@ -35,9 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => matmul(split[0].parse::<usize>().unwrap()),
     };
 
-    let mut access_data = list_serializable::list_accesses::new();
-
-    let result = trace(&mut loop_code, &lru_mode, &mut access_data);
+    let result = trace(&mut loop_code, &lru_mode);
 
     let serialized_access_data = serde_json::to_string(&access_data)?;
     let serialized_result_data = serde_json::to_string(&result)?;
