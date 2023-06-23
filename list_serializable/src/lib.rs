@@ -5,7 +5,7 @@ pub struct ListSerializable <T> {
     accesses: Vec<T>,
 }
 
-impl<T> ListSerializable <T> {
+impl<T: > ListSerializable <T> {
     pub fn new() -> Self {
         ListSerializable {
             accesses: Vec::new(),

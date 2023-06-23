@@ -14,5 +14,4 @@ hist = { path = "../../hist" }
 rusoto_core = "0.47.0"
 rusoto_s3 = "0.47.0"
 tokio = { version = "1", features = ["full"] }
-dace_tests = { path = "../../dace_tests" }
 

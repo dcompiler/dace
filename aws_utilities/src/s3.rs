@@ -8,16 +8,33 @@ use stack_alg_sim::LRU;
 use list_serializable::ListSerializable;
 
 
-//Save LRU to cloud
-pub async fn save_serialized(data: String, bucket: &str, path: &str) -> Result<(), Box<dyn Error>> {
+pub trait str_formatting { fn format_string(&self) -> String; }
+
+
+impl str_formatting for usize {
+    fn format_string(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl str_formatting for (usize, usize) {
+    fn format_string(&self) -> String {
+        format!("{} {}", self.0, self.1)
+    }
+}
+
+//Save serialized data to cloud
+pub async fn save_serialized(data: &String, bucket: &str, path: &str) -> Result<(), Box<dyn Error>> {
 
     let region = Region::from_str("us-east-2")?;
     let s3_client = rusoto_s3::S3Client::new(region);
 
+    let stream = ByteStream::from(data.as_bytes().to_vec());
+
     let put_req = PutObjectRequest {
         bucket: bucket.to_string(),
         key: path.to_string(),
-        body: Some(((*data).into_bytes()).into()),
+        body: Some(stream),
         ..Default::default()
     };
 
@@ -56,3 +73,6 @@ pub async fn process_csv_data(bucket: &str, key: &str) -> Result<Hist, Box<dyn s
 }
 
 
+pub fn save_csv<T: str_formatting> (list: ListSerializable<T>, bucket: &str, key: &str) {
+
+}

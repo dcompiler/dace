@@ -6,8 +6,9 @@ use stack_alg_sim::stack::LRUStack;
 use std::collections::hash_map::Entry;
 use fxhash::FxHashMap;
 use hist::Hist;
+type Reuse = ListSerializable<(usize, Option<usize>)>;
 
-pub fn calculate_trace(trace_input: &ListSerializable<usize>, lru_type: &str) -> (Hist, Hist, ListSerializable<(usize, Option<usize>)>, ListSerializable<(usize, Option<usize>)>){
+pub fn calculate_trace(trace_input: &ListSerializable<usize>, lru_type: &str) -> (Hist, Hist, Reuse, Reuse){
     let mut lru:  Box<dyn LRU<usize>> = match lru_type {
         "Olken" => {
             Box::new(LRUSplay::<usize>::new())

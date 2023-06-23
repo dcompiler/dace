@@ -4,6 +4,7 @@ use list_serializable::ListSerializable;
 use std::rc::Rc;
 use hist::Hist;
 use crate::calculate;
+type Reuse = ListSerializable<(usize, Option<usize>)>;
 
 fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
     let ary_index = (ary_ref.sub)(ivec);
@@ -52,7 +53,7 @@ fn trace_rec(
     }
 }
 
-pub fn trace(code: &mut Rc<Node>, lru_type: &str) -> (Hist, Hist, ListSerializable<(usize, Option<usize>)>, ListSerializable<(usize, Option<usize>)>) {
+pub fn trace(code: &mut Rc<Node>, lru_type: &str) -> (Hist, Hist, Reuse, Reuse) {
     let mut accesses_count: ListSerializable<usize> = ListSerializable::<usize>::new();
 
     set_arybase(code);
