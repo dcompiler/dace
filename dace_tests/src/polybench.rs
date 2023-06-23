@@ -480,7 +480,9 @@ mod tests {
 
     use super::*;
     #[test]
-    fn trmm_trace_test() { assert_eq!(trmm_trace(1024, 1024).node_count(), 8); }
+    fn trmm_trace_test() {
+        assert_eq!(trmm_trace(1024, 1024).node_count(), 8);
+    }
 
     #[test]
     fn test_mvt() {
