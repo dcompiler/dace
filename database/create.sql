@@ -4,7 +4,7 @@ USE research;
 
 CREATE TABLE IF NOT EXISTS user_requests (
     email VARCHAR(100) PRIMARY KEY,
-    user_name VARCHAR(100) NOT NULL,
+    user_name VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS users (
