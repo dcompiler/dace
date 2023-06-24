@@ -114,12 +114,10 @@ impl SplayNode {
         }
     }
     unsafe fn insert_front(node: NonNull<Self>, root: Option<NonNull<Self>>) -> NonNull<Self> {
-        if let Some(root) = root {
-            let mut front = Self::find_leftmost(root);
-            Self::splay(front);
-            Self::set_child(node, 1, Some(front));
-            front.as_mut().parent = Some(node);
-            Self::maintain(node);
+        Self::set_child(node, 1, root);
+        Self::maintain(node);
+        if let Some(mut root) = root {
+            root.as_mut().parent = Some(node);
         }
         node
     }

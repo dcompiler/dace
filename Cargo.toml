@@ -11,3 +11,7 @@ members = [
     "benches/lruvec_bench",
     "benches/stack_alg_sim_bench"
 ]
+
+[profile.release]
+debug = true
+lto = true

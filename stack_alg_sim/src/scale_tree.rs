@@ -44,7 +44,11 @@ impl SplayNode {
         }
     }
 
-    unsafe fn expose(mut node: NonNull<Self>, error_bound: f64) -> NonNull<Self> {
+    unsafe fn expose(
+        mut node: NonNull<Self>,
+        error_bound: f64,
+        compression_threshold: usize,
+    ) -> NonNull<Self> {
         Self::splay(node);
         // check marker
         while let Some(merged) = node.as_ref().merged.as_ref() {
@@ -62,7 +66,7 @@ impl SplayNode {
             }
         }
         // compress
-        Self::compress_root(node, error_bound);
+        Self::compress_root(node, error_bound, compression_threshold);
         node
     }
     unsafe fn remove_root(mut node: NonNull<Self>) -> Option<Option<NonNull<Self>>> {
@@ -74,8 +78,12 @@ impl SplayNode {
         Some(Self::remove_root_node(node))
     }
     // access will make a node the root of the tree.
-    unsafe fn access(node: NonNull<Self>, error_bound: f64) -> (usize, Rc<UnsafeCell<Self>>) {
-        let mut node = Self::expose(node, error_bound);
+    unsafe fn access(
+        node: NonNull<Self>,
+        error_bound: f64,
+        compression_threshold: usize,
+    ) -> (usize, Rc<UnsafeCell<Self>>) {
+        let mut node = Self::expose(node, error_bound, compression_threshold);
         let order = node.as_ref().count - Self::right_count(node);
         let handle = match Self::remove_root(node) {
             None => {
@@ -99,9 +107,16 @@ impl SplayNode {
         };
         (order, handle)
     }
-    unsafe fn compress_root(mut node: NonNull<Self>, error_bound: f64) {
+    unsafe fn compress_root(
+        mut node: NonNull<Self>,
+        error_bound: f64,
+        compression_threshold: usize,
+    ) {
         let distance = node.as_ref().count - Self::right_count(node);
         let capacity = ((distance as f64 * ((error_bound) / (1.0 - error_bound))) as usize).max(1);
+        if capacity - node.as_ref().size < compression_threshold {
+            return;
+        }
         if let Some(mut left) = Self::get_child(node, 0) {
             Self::set_child(node, 0, None);
             left.as_mut().parent = None;
@@ -247,6 +262,7 @@ pub struct LRUSplay<A> {
     root: Option<Rc<UnsafeCell<SplayNode>>>,
     handles: FxHashMap<A, Rc<UnsafeCell<SplayNode>>>,
     error_bound: f64,
+    compression_threshold: usize,
 }
 
 impl<A> Default for LRUSplay<A>
@@ -254,7 +270,7 @@ where
     A: Eq + Hash + Clone,
 {
     fn default() -> Self {
-        Self::new(0.0)
+        Self::new(0.0, usize::MAX)
     }
 }
 
@@ -262,11 +278,12 @@ impl<A> LRUSplay<A>
 where
     A: Eq + Hash + Clone,
 {
-    pub fn new(error_bound: f64) -> Self {
+    pub fn new(error_bound: f64, compression_threshold: usize) -> Self {
         Self {
             root: None,
             handles: FxHashMap::default(),
             error_bound,
+            compression_threshold,
         }
     }
     pub fn access(&mut self, key: A) -> Option<usize> {
@@ -275,7 +292,8 @@ where
                 Occupied(mut entry) => {
                     let node = entry.get().clone();
                     let node = NonNull::new_unchecked(node.get());
-                    let (count, handle) = SplayNode::access(node, self.error_bound);
+                    let (count, handle) =
+                        SplayNode::access(node, self.error_bound, self.compression_threshold);
                     self.root = Some(handle.clone());
                     entry.insert(handle);
                     Some(count)
@@ -305,7 +323,7 @@ mod tests {
 
     #[test]
     fn cyclic() {
-        let mut analyzer = LRUSplay::<String>::new(0.0);
+        let mut analyzer = LRUSplay::default();
         let mut dists = Vec::new();
         // let st = "abc abc";
         for c in "abc abc".chars().filter(|c| !c.is_whitespace()) {
@@ -317,7 +335,7 @@ mod tests {
 
     #[test]
     fn cyclic_slice() {
-        let mut analyzer = LRUSplay::<&str>::new(0.0);
+        let mut analyzer = LRUSplay::default();
         let mut dists = Vec::new();
         let st = "abcabc";
         for i in 0..st.len() {
@@ -334,7 +352,7 @@ mod tests {
         #[cfg(not(miri))]
         let limit = 100000;
 
-        let mut analyzer = LRUSplay::new(0.01);
+        let mut analyzer = LRUSplay::default();
         let mut dists = Vec::new();
         for c in (0..limit).chain(0..limit) {
             dists.push(analyzer.access(c));
@@ -348,7 +366,7 @@ mod tests {
 
     #[test]
     fn sawtooth() {
-        let mut analyzer = LRUSplay::<String>::new(0.0);
+        let mut analyzer = LRUSplay::default();
         let mut dists = Vec::new();
         for c in "abc cba".chars().filter(|c| !c.is_whitespace()) {
             dists.push(analyzer.access(c.to_string()));
@@ -364,7 +382,7 @@ mod tests {
         #[cfg(not(miri))]
         let limit = 100000;
 
-        let mut analyzer = LRUSplay::new(0.0);
+        let mut analyzer = LRUSplay::default();
         let mut dists = Vec::new();
         for c in (0..limit).chain((0..limit).rev()) {
             dists.push(analyzer.access(c));
