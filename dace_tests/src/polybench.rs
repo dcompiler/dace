@@ -523,9 +523,6 @@ mod tests {
     fn test_gemm_scale_tree() {
         use list_serializable::ListSerializable;
         use std::time::Instant;
-        tracing_subscriber::fmt()
-            .with_env_filter(EnvFilter::from_env("LOG_LEVEL"))
-            .init();
         let mut trace = gemm(128);
         let start = Instant::now();
         // let hist = static_rd::trace::trace(&mut trace);
