@@ -3,8 +3,6 @@ use dace::ast::{AryRef, LoopBound, Node, Stmt};
 use fxhash::FxHashMap;
 use hist::Hist;
 use list_serializable::ListSerializable;
-use stack_alg_sim::stack::LRUStack;
-use stack_alg_sim::vec::LRUVec;
 use stack_alg_sim::LRU;
 use std::collections::hash_map::Entry;
 
@@ -44,10 +42,10 @@ pub fn access3addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
     (ary_ref.base.unwrap() + offset) * DS / CLS
 }
 
-fn trace_rec(
+fn trace_rec<T: LRU<usize>>(
     code: &Rc<Node>,
     ivec: &[i32],
-    sim: &mut Box<dyn LRU<usize>>,
+    sim: &mut T,
     hist: &mut Hist,
     data_accesses: &mut ListSerializable,
 ) {
@@ -88,20 +86,18 @@ fn trace_rec(
     }
 }
 
-pub fn trace(code: &mut Rc<Node>, lru_type: &str, accesses_count: &mut ListSerializable) -> Hist {
-    let mut sim: Box<dyn LRU<usize>> = if lru_type == "Vec" {
-        Box::new(LRUVec::<usize>::new())
-    } else {
-        Box::new(LRUStack::<usize>::new())
-    };
-
+pub fn trace<T: LRU<usize>>(
+    code: &mut Rc<Node>,
+    mut analyzer: T,
+    accesses_count: &mut ListSerializable,
+) -> Hist {
     let mut hist = Hist::new();
     set_arybase(code);
     println!("{:?}", code);
     trace_rec(
         code,
         &Vec::<i32>::new(),
-        &mut sim,
+        &mut analyzer,
         &mut hist,
         accesses_count,
     );
@@ -201,6 +197,7 @@ fn trace_ri(
 #[cfg(test)]
 mod test {
     use super::*;
+    use stack_alg_sim::stack::LRUStack;
 
     #[test]
     fn test_access2addr() {
@@ -221,7 +218,7 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let hist = trace(&mut aloop, "Stack", &mut ListSerializable::new());
+        let hist = trace(&mut aloop, LRUStack::new(), &mut ListSerializable::new());
         assert_eq!(hist.to_vec()[0], (None, 10));
         println!("{}", hist);
     }
@@ -233,7 +230,7 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let hist = trace(&mut aloop, "Stack", &mut ListSerializable::new());
+        let hist = trace(&mut aloop, LRUStack::new(), &mut ListSerializable::new());
         assert_eq!(hist.to_vec()[0], (Some(1), 9));
         assert_eq!(hist.to_vec()[1], (None, 1));
         println!("{}", hist);

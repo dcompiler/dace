@@ -472,6 +472,7 @@ pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
 
 #[cfg(test)]
 mod tests {
+    use static_rd::*;
     use tracing_subscriber::EnvFilter;
 
     use super::*;
@@ -504,7 +505,7 @@ mod tests {
     }
 
     #[test]
-    fn test_gemm() {
+    fn test_gemm_ri() {
         use std::time::Instant;
         tracing_subscriber::fmt()
             .with_env_filter(EnvFilter::from_env("LOG_LEVEL"))
@@ -513,6 +514,37 @@ mod tests {
         let start = Instant::now();
         // let hist = static_rd::trace::trace(&mut trace);
         let hist = static_rd::trace::tracing_ri(&mut trace);
+        let end = Instant::now();
+        println!("gemm trace time: {:?}", end - start);
+        println!("hist: {}", hist);
+    }
+
+    #[test]
+    fn test_gemm_rd_olken() {
+        use list_serializable::ListSerializable;
+        use std::time::Instant;
+        let mut trace = gemm(128);
+        let start = Instant::now();
+        // let hist = static_rd::trace::trace(&mut trace);
+        let hist =
+            static_rd::trace::trace(&mut trace, LRUSplay::new(), &mut ListSerializable::new());
+        let end = Instant::now();
+        println!("gemm trace time: {:?}", end - start);
+        println!("hist: {}", hist);
+    }
+
+    #[test]
+    fn test_gemm_rd_scale_tree() {
+        use list_serializable::ListSerializable;
+        use std::time::Instant;
+        let mut trace = gemm(128);
+        let start = Instant::now();
+        // let hist = static_rd::trace::trace(&mut trace);
+        let hist = static_rd::trace::trace(
+            &mut trace,
+            LRUScaleTree::new(0.1, 10000),
+            &mut ListSerializable::new(),
+        );
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
         println!("hist: {}", hist);
