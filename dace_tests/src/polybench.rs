@@ -63,10 +63,14 @@ fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
     let mut b2_ref = Node::new_ref("B", vec![M, N], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
+    let mut b3_ref = Node::new_ref("B", vec![M, N], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
 
     Node::extend_loop_body(&mut k_loop_ref, &mut a_ref);
     Node::extend_loop_body(&mut k_loop_ref, &mut b1_ref);
     Node::extend_loop_body(&mut k_loop_ref, &mut b2_ref);
+    Node::extend_loop_body(&mut k_loop_ref, &mut b3_ref);
 
     // B[i * N + j] = alpha * B[i * N + j];
     let mut b3_ref = Node::new_ref("B", vec![M, N], |ijk| {
@@ -476,12 +480,9 @@ mod tests {
     use tracing_subscriber::EnvFilter;
 
     use super::*;
+    #[test]
     fn trmm_trace_test() {
-        let M = 1024;
-        let N = 1024;
-
-        let ast = trmm_trace(M, N);
-        assert_eq!(ast.node_count(), 7);
+        assert_eq!(trmm_trace(1024, 1024).node_count(), 8);
     }
 
     #[test]
