@@ -476,10 +476,7 @@ pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
 
 #[cfg(test)]
 mod tests {
-    
     use static_rd::*;
-    
-    
 
     use super::*;
     #[test]
