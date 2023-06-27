@@ -9,7 +9,8 @@ members = [
     "list_serializable",
     "stack_test_cases",
     "benches/lruvec_bench",
-    "benches/stack_alg_sim_bench"
+    "benches/stack_alg_sim_bench",
+    "static_ri"
 ]
 
 [profile.release]
