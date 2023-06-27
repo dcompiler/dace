@@ -98,6 +98,7 @@ fn trace_ri(
     }
 }
 
+#[allow(dead_code)]
 #[allow(non_snake_case)]
 fn sample_ri(
     code: &Rc<Node>,
