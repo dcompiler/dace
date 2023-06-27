@@ -252,7 +252,7 @@ pub fn syr2d(n: usize, m: usize) -> Rc<Node> {
     i_loop_ref
 }
 
-fn gemm(n: usize) -> Rc<Node> {
+pub fn gemm(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
     let mut A0 = Node::new_ref("A", vec![n, n], |ijk| {
@@ -477,7 +477,6 @@ pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
 #[cfg(test)]
 mod tests {
     use static_rd::*;
-    use tracing_subscriber::EnvFilter;
 
     use super::*;
     #[test]
@@ -503,21 +502,6 @@ mod tests {
     #[test]
     fn test_syr2d() {
         assert_eq!(syr2d(1024, 1024).node_count(), 12);
-    }
-
-    #[test]
-    fn test_gemm_ri() {
-        use std::time::Instant;
-        tracing_subscriber::fmt()
-            .with_env_filter(EnvFilter::from_env("LOG_LEVEL"))
-            .init();
-        let mut trace = gemm(128);
-        let start = Instant::now();
-        // let hist = static_rd::trace::trace(&mut trace);
-        let hist = static_rd::trace::tracing_ri(&mut trace);
-        let end = Instant::now();
-        println!("gemm trace time: {:?}", end - start);
-        println!("hist: {}", hist);
     }
 
     #[test]

@@ -1,0 +1,15 @@
+[package]
+name = "static_ri"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stack_alg_sim = { path = "../stack_alg_sim" }
+hist = { path = "../hist" }
+dace = { path = "../dace" }
+list_serializable = { path = "../list_serializable" }
+dace_tests = { path = "../dace_tests" }
+tracing = "0.1.37"
+fxhash = "0.2.1"
+tracing-subscriber = "0.3.17"
+
