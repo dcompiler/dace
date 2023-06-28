@@ -1,6 +1,5 @@
 use std::env;
 use mysql::{self, OptsBuilder, Opts, params, prelude::Queryable};
-// type param_input = (&String, &String, &String, &String, &String, &String, &String, &String, &String, &String, &String, &String, &String, &String, &String, &String);
 
 pub fn connect_to_db() -> mysql::PooledConn{
     let username = env::var("db_username").expect("db_username must be set");
@@ -38,9 +37,9 @@ pub fn save_entry(
     conn: &mut mysql::PooledConn,
     params: (
         &String, &String, &String, &String, 
-        &String, &String, &String, &String, 
-        &String, &String, &String, &String, 
-        &String, &String, &String, &String
+        &str, &str, &str, &str, 
+        &str, &str, &str, &str, 
+        &str, &str, &String, &String
     )
 ) -> Result<(), mysql::Error> {
     conn.exec_drop(

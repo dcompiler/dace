@@ -1,7 +1,7 @@
 use dace_tests::polybench::{_2mm, _3mm, matmul};
 use tracer::trace::trace;
 use std::{env, time::Instant, time::Duration};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
 fn duration_to_string(duration: Duration) -> String {
     let total_seconds = duration.as_secs();
@@ -22,9 +22,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let lru_mode = &args[1];
     let t_mode = &args[2];
-    let argdata = &args[3];
-    let creator = &args[4];
-    let hash_code = &args[5];
+    let creator = &args[3];
+    let hash_code = &args[4];
+    let argdata = &args[5];
 
     let mut conn = aws_utilities::rds::connect_to_db();
 
@@ -88,27 +88,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let trace_path_json = Arc::clone(&trace_path_json);
 
         async move {
-            let serialized_trace_data = serialized_trace_data.lock().unwrap().clone();
-            let binding = trace_path_json.lock().unwrap().clone();
-            let trace_path_json = binding.as_str();
+            let serialized_trace_data = &serialized_trace_data;
+            let trace_path_json = &trace_path_json;
 
-            aws_utilities::s3::save_serialized(
-                &serialized_trace_data,
-                serialized_bucket,
-                trace_path_json,
-            )
-            .await
-        }
-    });
-
-    let handle1 = tokio::spawn({
-        let serialized_trace_data = Arc::clone(&serialized_trace_data);
-        let trace_path_json = Arc::clone(&trace_path_json);
-    
-        async move {
-            let serialized_trace_data = serialized_trace_data.unwrap().clone();
-            let trace_path_json = trace_path_json.as_str();
-    
             aws_utilities::s3::save_serialized(
                 serialized_trace_data,
                 serialized_bucket,
@@ -118,15 +100,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+
     let handle2 = tokio::spawn({
         let serialized_hist_rd_data = Arc::clone(&serialized_hist_rd_data);
         let hist_rd_path_json = Arc::clone(&hist_rd_path_json);
         async move {
-            let serialized_hist_rd_data = serialized_hist_rd_data.lock().unwrap().clone();
-            let binding = hist_rd_path_json.lock().unwrap().clone();
-            let hist_rd_path_json = binding.as_str();
+            let serialized_hist_rd_data = &serialized_hist_rd_data;
+            let hist_rd_path_json = &hist_rd_path_json;
             aws_utilities::s3::save_serialized(
-                &serialized_hist_rd_data,
+                serialized_hist_rd_data,
                 serialized_bucket,
                 hist_rd_path_json,
             )
@@ -138,11 +120,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let serialized_hist_ri_data = Arc::clone(&serialized_hist_ri_data);
         let hist_ri_path_json = Arc::clone(&hist_ri_path_json);
         async move {
-            let serialized_hist_ri_data = serialized_hist_ri_data.lock().unwrap().clone();
-            let binding = hist_ri_path_json.lock().unwrap().clone();
-            let hist_ri_path_json = binding.as_str();
+            let serialized_hist_ri_data = &serialized_hist_ri_data;
+            let hist_ri_path_json = &hist_ri_path_json;
             aws_utilities::s3::save_serialized(
-                &serialized_hist_ri_data,
+                serialized_hist_ri_data,
                 serialized_bucket,
                 hist_ri_path_json,
             )
@@ -154,11 +135,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let serialized_dist_rd_data = Arc::clone(&serialized_dist_rd_data);
         let dist_rd_path_json = Arc::clone(&dist_rd_path_json);
         async move {
-            let serialized_dist_rd_data = serialized_dist_rd_data.lock().unwrap().clone();
-            let binding = dist_rd_path_json.lock().unwrap().clone();
-            let dist_rd_path_json = binding.as_str();
+            let serialized_dist_rd_data = &serialized_dist_rd_data;
+            let dist_rd_path_json = &dist_rd_path_json;
             aws_utilities::s3::save_serialized(
-                &serialized_dist_rd_data,
+                serialized_dist_rd_data,
                 serialized_bucket,
                 dist_rd_path_json,
             )
@@ -170,11 +150,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let serialized_dist_ri_data = Arc::clone(&serialized_dist_ri_data);
         let dist_ri_path_json = Arc::clone(&dist_ri_path_json);
         async move {
-            let serialized_dist_ri_data = serialized_dist_ri_data.lock().unwrap().clone();
-            let binding = dist_ri_path_json.lock().unwrap().clone();
-            let dist_ri_path_json = binding.as_str();      
+            let serialized_dist_ri_data = &serialized_dist_ri_data;
+            let dist_ri_path_json = &dist_ri_path_json;      
             aws_utilities::s3::save_serialized(
-                &serialized_dist_ri_data,
+                serialized_dist_ri_data,
                 serialized_bucket,
                 dist_ri_path_json,
             )
@@ -182,35 +161,66 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let handle6 = tokio::spawn(aws_utilities::s3::save_csv_hist(
-        result.0,
-        csv_bucket,
-        hist_rd_path_csv.lock().unwrap().clone()
-    ));
+    let handle6 = tokio::spawn( {
+        let hist_rd_path_csv = Arc::clone(&hist_rd_path_csv);
+        async move {
+            aws_utilities::s3::save_csv_hist(
+                result.0,
+                csv_bucket,
+                &hist_rd_path_csv
+            )
+            .await
+        }
+    });
     
-    let handle7 = tokio::spawn(aws_utilities::s3::save_csv_hist(
-        result.1,
-        csv_bucket,
-        hist_ri_path_csv.lock().unwrap().clone()
-    ));
-    
-    let handle8 = tokio::spawn(aws_utilities::s3::save_csv_list_dist(
-        result.2,
-        csv_bucket,
-        dist_rd_path_csv.lock().unwrap().clone()
-    ));
-    
-    let handle9 = tokio::spawn(aws_utilities::s3::save_csv_list_dist(
-        result.3,
-        csv_bucket,
-        dist_ri_path_csv.lock().unwrap().clone()
-    ));
-    
-    let handle10 = tokio::spawn(aws_utilities::s3::save_csv_list_trace(
-        result.4,
-        csv_bucket,
-        trace_path_csv.lock().unwrap().clone()
-    ));
+
+    let handle7 = tokio::spawn( {
+        let hist_ri_path_csv = Arc::clone(&hist_ri_path_csv);
+        async move {
+            aws_utilities::s3::save_csv_hist(
+                result.1,
+                csv_bucket,
+                &hist_ri_path_csv
+            )
+            .await
+        }
+    });
+
+    let handle8 = tokio::spawn( {
+        let dist_rd_path_csv = Arc::clone(&dist_rd_path_csv);
+        async move {
+            aws_utilities::s3::save_csv_list_dist(
+                result.2,
+                csv_bucket,
+                &dist_rd_path_csv
+            )
+            .await
+        }
+    });
+
+    let handle9 = tokio::spawn( {
+        let dist_ri_path_csv = Arc::clone(&dist_ri_path_csv);
+        async move {
+            aws_utilities::s3::save_csv_list_dist(
+                result.3,
+                csv_bucket,
+                &dist_ri_path_csv
+            )
+            .await
+        }
+    });
+
+    let handle10 = tokio::spawn( {
+        let trace_path_csv = Arc::clone(&trace_path_csv);
+        async move {
+            aws_utilities::s3::save_csv_list_trace(
+                result.4,
+                csv_bucket,
+                &trace_path_csv
+            )
+            .await
+        }
+    });
     
 
     // Store all handles in a Vec
@@ -220,24 +230,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for handle in handles {
         handle.await??; // Use '?' if the functions return Result<_, _>
     }
-    // let handle1 = tokio::spawn(aws_utilities::s3::save_serialized(&serialized_trace_data, serialized_bucket, trace_path_json.as_str()));
-    // let handle2 = tokio::spawn(aws_utilities::s3::save_serialized(&serialized_hist_rd_data, serialized_bucket, hist_rd_path_json.as_str()));
-    // let handle3 = tokio::spawn(aws_utilities::s3::save_serialized(&serialized_hist_ri_data, serialized_bucket, hist_ri_path_json.as_str()));
-    // let handle4 = tokio::spawn(aws_utilities::s3::save_serialized(&serialized_dist_rd_data, serialized_bucket, dist_rd_path_json.as_str()));
-    // let handle5 = tokio::spawn(aws_utilities::s3::save_serialized(&serialized_dist_ri_data, serialized_bucket, dist_ri_path_json.as_str()));
-    // let handle6 = tokio::spawn(aws_utilities::s3::save_csv_hist(result.0, csv_bucket, hist_rd_path_csv.as_str()));
-    // let handle7 = tokio::spawn(aws_utilities::s3::save_csv_hist(result.1, csv_bucket, hist_ri_path_csv.as_str()));
-    // let handle8 = tokio::spawn(aws_utilities::s3::save_csv_list_dist(result.2, csv_bucket, dist_rd_path_csv.as_str()));
-    // let handle9 = tokio::spawn(aws_utilities::s3::save_csv_list_dist(result.3, csv_bucket, dist_ri_path_csv.as_str()));
-    // let handle10 = tokio::spawn(aws_utilities::s3::save_csv_list_trace(result.4, csv_bucket, trace_path_csv.as_str()));
-
-    // // Store all handles in a Vec
-    // let handles = vec![handle1, handle2, handle3, handle4, handle5, handle6, handle7, handle8, handle9, handle10];
-
-    // // Then await them all
-    // for handle in handles {
-    //     let _ = handle.await?;  // Use '?' if the functions return Result<_, _>
-    // }
     
 
     aws_utilities::rds::save_entry(
@@ -246,16 +238,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         lru_mode,
         argdata,
         &duration_to_string(time_elapsed),
-        &trace_path_csv.lock().unwrap().clone(),
-        &hist_rd_path_csv.lock().unwrap().clone(),
-        &hist_ri_path_csv.lock().unwrap().clone(),
-        &dist_rd_path_csv.lock().unwrap().clone(),
-        &dist_ri_path_csv.lock().unwrap().clone(),
-        &trace_path_json.lock().unwrap().clone(),
-        &hist_rd_path_json.lock().unwrap().clone(),
-        &hist_ri_path_json.lock().unwrap().clone(),
-        &dist_rd_path_json.lock().unwrap().clone(),
-        &dist_ri_path_json.lock().unwrap().clone(),
+        &trace_path_csv,
+        &hist_rd_path_csv,
+        &hist_ri_path_csv,
+        &dist_rd_path_csv,
+        &dist_ri_path_csv,
+        &trace_path_json,
+        &hist_rd_path_json,
+        &hist_ri_path_json,
+        &dist_rd_path_json,
+        &dist_ri_path_json,
         hash_code,
         creator
         )

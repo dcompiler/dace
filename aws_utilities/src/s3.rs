@@ -1,14 +1,13 @@
 use std::str::FromStr;
 use rusoto_s3::{PutObjectRequest, S3, S3Client};
 use rusoto_core::{Region, ByteStream};
-// use std::error::Error;
 use list_serializable::ListSerializable;
 use csv::Writer;
 use hist::Hist;
 use anyhow::Result;
 
 //Save serialized data to cloud
-pub async fn save_serialized(data: &String, bucket: &str, path: &str) -> Result<()> {
+pub async fn save_serialized(data: &String, bucket: &str, path: &String) -> Result<()> {
 
     let region = Region::from_str("us-east-2")?;
     let s3_client = rusoto_s3::S3Client::new(region);
@@ -27,39 +26,8 @@ pub async fn save_serialized(data: &String, bucket: &str, path: &str) -> Result<
     Ok(())
 }
 
-// Reads an LRU file from cloud
-// pub async fn process_csv_data(bucket: &str, key: &str) -> Result<Hist, Box<dyn std::error::Error>> {
-//     let region = Region::from_str("us-east-2")?;
-//     let s3_client = S3Client::new(region);
-
-//     let get_req = GetObjectRequest {
-//         bucket: bucket.to_string(),
-//         key: key.to_string(),
-//         ..Default::default()
-//     };
-
-//     let result = s3_client.get_object(get_req).await?;
-//     let mut reader = result.body.unwrap().into_async_read();
-//     let mut csv_string = String::new();
-//     reader.read_to_string(&mut csv_string).await?;
-
-//     let mut csv_reader = Reader::from_reader(csv_string.as_bytes());
-
-//     let mut hist = Hist::new();
-
-//     for result in csv_reader.records() {
-//         let record = result?;
-//         let distance: usize = record.get(1).unwrap().parse()?;
-//         hist.add_dist(Some(distance));
-//     }
-
-//     Ok(hist)
-// }
-
-
 //Redundant code here
-pub async fn save_csv_list_trace(list: ListSerializable<usize>, bucket: &str, key: String) -> Result<()> {
-    let key = key.as_str();
+pub async fn save_csv_list_trace(list: ListSerializable<usize>, bucket: &str, key: &String) -> Result<()> {
     let region = Region::from_str("us-east-2")?;
     let s3_client = rusoto_s3::S3Client::new(region);
 
@@ -83,8 +51,7 @@ pub async fn save_csv_list_trace(list: ListSerializable<usize>, bucket: &str, ke
     Ok(())
 }
 
-pub async fn save_csv_list_dist(list: ListSerializable<(usize, Option<usize>)>, bucket: &str, key: String) -> Result<()>{
-    let key = key.as_str();
+pub async fn save_csv_list_dist(list: ListSerializable<(usize, Option<usize>)>, bucket: &str, key: &String) -> Result<()>{
     let region = Region::from_str("us-east-2")?;
     let s3_client = rusoto_s3::S3Client::new(region);
 
@@ -108,8 +75,7 @@ pub async fn save_csv_list_dist(list: ListSerializable<(usize, Option<usize>)>, 
     Ok(())
 }
 
-pub async fn save_csv_hist(histogram: Hist, bucket: &str, key: String) -> Result<()> {
-    let key = key.as_str();
+pub async fn save_csv_hist(histogram: Hist, bucket: &str, key: &String) -> Result<()> {
     let region = Region::from_str("us-east-2")?; 
     let s3_client = S3Client::new(region);
 
