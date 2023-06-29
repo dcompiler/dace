@@ -1,5 +1,5 @@
 [package]
-name = "bench"
+name = "aws_utilities"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,11 +7,10 @@ edition = "2021"
 
 [dependencies]
 csv = "1.2.1"
-rand = "0.8.5"
-stack_alg_sim = { path = "../../stack_alg_sim" }
-test_cases = { path = "../../stack_test_cases" }
-hist = { path = "../../hist" }
+hist = { path = "../hist" }
 rusoto_core = "0.47.0"
 rusoto_s3 = "0.47.0"
 tokio = { version = "1", features = ["full"] }
-
+list_serializable = { path = "../list_serializable"}
+mysql = "24.0.0"
+anyhow = "1.0.40"

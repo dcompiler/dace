@@ -1,10 +1,10 @@
+use crate::calculate;
 use dace::arybase::set_arybase;
 use dace::ast::{AryRef, LoopBound, Node, Stmt};
 use hist::Hist;
 use list_serializable::ListSerializable;
-use stack_alg_sim::LRU;
-
 use std::rc::Rc;
+type Reuse = ListSerializable<(usize, Option<usize>)>;
 
 fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
     let ary_index = (ary_ref.sub)(ivec);
@@ -20,19 +20,11 @@ fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
     ary_ref.base.unwrap() + offset
 }
 
-fn trace_rec<T: LRU<usize>>(
-    code: &Rc<Node>,
-    ivec: &[i32],
-    sim: &mut T,
-    hist: &mut Hist,
-    data_accesses: &mut ListSerializable,
-) {
+fn trace_rec(code: &Rc<Node>, ivec: &[i32], data_accesses: &mut ListSerializable<usize>) {
     match &code.stmt {
         Stmt::Ref(ary_ref) => {
             let addr = access2addr(ary_ref, ivec);
             data_accesses.add(addr);
-            let rd = sim.rec_access(addr);
-            hist.add_dist(rd);
         }
         Stmt::Loop(aloop) => {
             if let LoopBound::Fixed(lb) = aloop.lb {
@@ -41,7 +33,7 @@ fn trace_rec<T: LRU<usize>>(
                         aloop.body.iter().for_each(|stmt| {
                             let mut myvec = ivec.to_owned();
                             myvec.push(i);
-                            trace_rec(stmt, &myvec, sim, hist, data_accesses)
+                            trace_rec(stmt, &myvec, data_accesses)
                         })
                     })
                 } else {
@@ -53,39 +45,28 @@ fn trace_rec<T: LRU<usize>>(
         }
         Stmt::Block(blk) => blk
             .iter()
-            .for_each(|s| trace_rec(s, ivec.clone(), sim, hist, data_accesses)),
-        Stmt::Branch(stmt) => {
-            if (stmt.cond)(ivec) {
-                trace_rec(&stmt.then_body, ivec.clone(), sim, hist, data_accesses)
-            } else if let Some(else_body) = &stmt.else_body {
-                trace_rec(else_body, ivec.clone(), sim, hist, data_accesses)
-            }
-        }
+            .for_each(|s| trace_rec(s, ivec.clone(), data_accesses)),
     }
 }
 
-pub fn trace<T: LRU<usize>>(
+pub fn trace(
     code: &mut Rc<Node>,
-    mut analyzer: T,
-    accesses_count: &mut ListSerializable,
-) -> Hist {
-    let mut hist = Hist::new();
+    lru_type: &str,
+) -> (Hist, Hist, Reuse, Reuse, ListSerializable<usize>) {
+    let mut accesses_count: ListSerializable<usize> = ListSerializable::<usize>::new();
+
     set_arybase(code);
     println!("{:?}", code);
-    trace_rec(
-        code,
-        &Vec::<i32>::new(),
-        &mut analyzer,
-        &mut hist,
-        accesses_count,
-    );
-    hist
+    trace_rec(code, &Vec::<i32>::new(), &mut accesses_count);
+
+    let result = calculate::calculate_trace(&accesses_count, lru_type);
+
+    (result.0, result.1, result.2, result.3, accesses_count)
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use stack_alg_sim::stack::LRUStack;
 
     #[test]
     fn test_access2addr() {
@@ -106,9 +87,9 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let hist = trace(&mut aloop, LRUStack::new(), &mut ListSerializable::new());
-        assert_eq!(hist.to_vec()[0], (None, 10));
-        println!("{}", hist);
+        let hist = trace(&mut aloop, "Olken");
+        assert_eq!(hist.0.to_vec()[0], (None, 10));
+        println!("{}", hist.0);
     }
 
     #[test]
@@ -118,9 +99,10 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let hist = trace(&mut aloop, LRUStack::new(), &mut ListSerializable::new());
-        assert_eq!(hist.to_vec()[0], (Some(1), 9));
-        assert_eq!(hist.to_vec()[1], (None, 1));
-        println!("{}", hist);
+        let hist = trace(&mut aloop, "Olken");
+
+        assert_eq!(hist.0.to_vec()[0], (Some(1), 9));
+        assert_eq!(hist.0.to_vec()[1], (None, 1));
+        println!("{}", hist.0);
     }
 }

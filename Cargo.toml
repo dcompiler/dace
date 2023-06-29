@@ -5,12 +5,14 @@ members = [
     "dace_tests",
     "stack_alg_sim",
     "hist",
-    "static_rd",
+    "tracer",
     "list_serializable",
     "stack_test_cases",
     "benches/lruvec_bench",
     "benches/stack_alg_sim_bench",
-    "static_ri"
+    "static_ri",
+    "polybenchrun",
+    "aws_utilities"
 ]
 
 [profile.release]
