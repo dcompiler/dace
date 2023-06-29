@@ -11,7 +11,6 @@ hist = { path = "../hist" }
 rusoto_core = "0.47.0"
 rusoto_s3 = "0.47.0"
 tokio = { version = "1", features = ["full"] }
-tracer = { path = "../tracer" }
 list_serializable = { path = "../list_serializable"}
 mysql = "24.0.0"
 anyhow = "1.0.40"
