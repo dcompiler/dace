@@ -23,15 +23,18 @@ pub fn lu(n: usize) -> Rc<Node> {
     Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ik);
     Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_kj);
     Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ij);
+    Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ij);
 
     let mut j_loop_lower_ref = loop_node!("j", 0 => move |ijk:&[i32]| ijk[0]);
     Node::extend_loop_body(&mut j_loop_lower_ref, &mut k_loop_ref_j);
     Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_jj);
     Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_ij);
+    Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_ij);
 
     let mut k_loop_ref_i = loop_node!("k", 0 => move |ijk:&[i32]| ijk[0]);
     Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ik);
     Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_kj);
+    Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ij);
     Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ij);
 
     let mut j_loop_upper_ref = loop_node!("j", move |ijk:&[i32]| ijk[0] => ubound);
@@ -60,10 +63,14 @@ fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
     let mut b2_ref = Node::new_ref("B", vec![M, N], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
+    let mut b3_ref = Node::new_ref("B", vec![M, N], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
 
     Node::extend_loop_body(&mut k_loop_ref, &mut a_ref);
     Node::extend_loop_body(&mut k_loop_ref, &mut b1_ref);
     Node::extend_loop_body(&mut k_loop_ref, &mut b2_ref);
+    Node::extend_loop_body(&mut k_loop_ref, &mut b3_ref);
 
     // B[i * N + j] = alpha * B[i * N + j];
     let mut b3_ref = Node::new_ref("B", vec![M, N], |ijk| {
@@ -245,19 +252,16 @@ pub fn syr2d(n: usize, m: usize) -> Rc<Node> {
     i_loop_ref
 }
 
-fn gemm(n: usize) -> Rc<Node> {
+pub fn gemm(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
-    let mut A0 = Node::new_ref("A0", vec![n, n], |ijk| {
+    let mut A0 = Node::new_ref("A", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[2] as usize]
     });
-    let mut B0 = Node::new_ref("B0", vec![n, n], |ijk| {
+    let mut B0 = Node::new_ref("B", vec![n, n], |ijk| {
         vec![ijk[2] as usize, ijk[1] as usize]
     });
-    let mut C0 = Node::new_ref("C0", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-    let mut C1 = Node::new_ref("C1", vec![n, n], |ijk| {
+    let mut C0 = Node::new_ref("C", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
 
@@ -265,18 +269,11 @@ fn gemm(n: usize) -> Rc<Node> {
     Node::extend_loop_body(&mut k_loop_ref, &mut A0);
     Node::extend_loop_body(&mut k_loop_ref, &mut B0);
     Node::extend_loop_body(&mut k_loop_ref, &mut C0);
-    Node::extend_loop_body(&mut k_loop_ref, &mut C1);
-
-    let mut C2 = Node::new_ref("C2", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
-    let mut C3 = Node::new_ref("C3", vec![n, n], |ijk| {
-        vec![ijk[0] as usize, ijk[1] as usize]
-    });
+    Node::extend_loop_body(&mut k_loop_ref, &mut C0.clone());
 
     let mut j_loop_ref = loop_node!("j", 0 => ubound);
-    Node::extend_loop_body(&mut j_loop_ref, &mut C2);
-    Node::extend_loop_body(&mut j_loop_ref, &mut C3);
+    Node::extend_loop_body(&mut j_loop_ref, &mut C0.clone());
+    Node::extend_loop_body(&mut j_loop_ref, &mut C0.clone());
     Node::extend_loop_body(&mut j_loop_ref, &mut k_loop_ref);
 
     let mut i_loop_ref = loop_node!("i", 0 => ubound);
@@ -330,6 +327,7 @@ fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
     Node::new_node(Stmt::Block(vec![ini_loop_ref1, ini_loop_ref2]))
 }
 
+//created by: Dylan McKellips
 pub fn cholesky(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
@@ -345,6 +343,7 @@ pub fn cholesky(n: usize) -> Rc<Node> {
     });
 
     // create A[i * N + j] /= A[j * N + j];
+
     let mut s_ref_aij2 = Node::new_ref("a", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
@@ -357,6 +356,8 @@ pub fn cholesky(n: usize) -> Rc<Node> {
     });
 
     //create A[i * N + i] = sqrt(A[i * N + i]);
+
+
     let mut s_ref_aii2 = Node::new_ref("a", vec![n], |ijk| vec![ijk[0] as usize]);
 
     let mut k1_loop_ref = Node::new_single_loop_dyn_ub("k", 0, move |j| j[0]);
@@ -585,16 +586,30 @@ pub fn heat_3d(m: usize, n: usize) -> Rc<Node> {
 
     t_loop_ref
 }
+  
+pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
+    let mut mat_a_ref = Node::new_ref("A", vec![ni, nj], |ij| vec![ij[0] as usize, ij[1] as usize]);
+
+    let mut mat_b_ref = Node::new_ref("B", vec![ni, nj], |ij| vec![ij[0] as usize, ij[1] as usize]);
+
+    let mut i_ni_loop_ref = Node::new_single_loop("i", 1, (ni - 1) as i32);
+    let mut j_nj_loop_ref = Node::new_single_loop("j", 1, (nj - 1) as i32);
+
+    Node::extend_loop_body(&mut j_nj_loop_ref, &mut mat_a_ref);
+    Node::extend_loop_body(&mut j_nj_loop_ref, &mut mat_b_ref);
+    Node::extend_loop_body(&mut i_ni_loop_ref, &mut j_nj_loop_ref);
+
+    Node::new_node(Stmt::Block(vec![i_ni_loop_ref]))
+}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    fn trmm_trace_test() {
-        let M = 1024;
-        let N = 1024;
+    use static_rd::*;
 
-        let ast = trmm_trace(M, N);
-        assert_eq!(ast.node_count(), 7);
+    use super::*;
+    #[test]
+    fn trmm_trace_test() {
+        assert_eq!(trmm_trace(1024, 1024).node_count(), 8);
     }
 
     #[test]
@@ -617,9 +632,36 @@ mod tests {
         assert_eq!(syr2d(1024, 1024).node_count(), 12);
     }
 
+
     #[test]
-    fn test_gemm() {
-        assert_eq!(gemm(128).node_count(), 9);
+    fn test_gemm_rd_olken() {
+        use list_serializable::ListSerializable;
+        use std::time::Instant;
+        let mut trace = gemm(128);
+        let start = Instant::now();
+        // let hist = static_rd::trace::trace(&mut trace);
+        let hist =
+            static_rd::trace::trace(&mut trace, LRUSplay::new(), &mut ListSerializable::new());
+        let end = Instant::now();
+        println!("gemm trace time: {:?}", end - start);
+        println!("hist: {}", hist);
+    }
+
+    #[test]
+    fn test_gemm_rd_scale_tree() {
+        use list_serializable::ListSerializable;
+        use std::time::Instant;
+        let mut trace = gemm(128);
+        let start = Instant::now();
+        // let hist = static_rd::trace::trace(&mut trace);
+        let hist = static_rd::trace::trace(
+            &mut trace,
+            LRUScaleTree::new(0.1, 10000),
+            &mut ListSerializable::new(),
+        );
+        let end = Instant::now();
+        println!("gemm trace time: {:?}", end - start);
+        println!("hist: {}", hist);
     }
 
     #[test]
@@ -630,7 +672,7 @@ mod tests {
     #[test]
     fn lu_test() {
         let mm = lu(100);
-        assert_eq!(mm.node_count(), 13);
+        assert_eq!(mm.node_count(), 16);
     }
 
     #[test]
