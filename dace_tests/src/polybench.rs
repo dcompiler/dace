@@ -327,6 +327,7 @@ fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
     Node::new_node(Stmt::Block(vec![ini_loop_ref1, ini_loop_ref2]))
 }
 
+//created by: Dylan McKellips
 pub fn cholesky(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
@@ -354,6 +355,7 @@ pub fn cholesky(n: usize) -> Rc<Node> {
     });
 
     //create A[i * N + i] = sqrt(A[i * N + i]);
+
     let mut s_ref_aii2 = Node::new_ref("a", vec![n], |ijk| vec![ijk[0] as usize]);
 
     let mut k1_loop_ref = Node::new_single_loop_dyn_ub("k", 0, move |j| j[0]);
