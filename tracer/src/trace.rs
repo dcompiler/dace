@@ -1,9 +1,9 @@
+use crate::calculate;
 use dace::arybase::set_arybase;
 use dace::ast::{AryRef, LoopBound, Node, Stmt};
+use hist::Hist;
 use list_serializable::ListSerializable;
 use std::rc::Rc;
-use hist::Hist;
-use crate::calculate;
 type Reuse = ListSerializable<(usize, Option<usize>)>;
 
 fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
@@ -20,11 +20,7 @@ fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
     ary_ref.base.unwrap() + offset
 }
 
-fn trace_rec(
-    code: &Rc<Node>,
-    ivec: &[i32],
-    data_accesses: &mut ListSerializable<usize>,
-) {
+fn trace_rec(code: &Rc<Node>, ivec: &[i32], data_accesses: &mut ListSerializable<usize>) {
     match &code.stmt {
         Stmt::Ref(ary_ref) => {
             let addr = access2addr(ary_ref, ivec);
@@ -53,22 +49,20 @@ fn trace_rec(
     }
 }
 
-pub fn trace(code: &mut Rc<Node>, lru_type: &str) -> (Hist, Hist, Reuse, Reuse, ListSerializable<usize>) {
+pub fn trace(
+    code: &mut Rc<Node>,
+    lru_type: &str,
+) -> (Hist, Hist, Reuse, Reuse, ListSerializable<usize>) {
     let mut accesses_count: ListSerializable<usize> = ListSerializable::<usize>::new();
 
     set_arybase(code);
     println!("{:?}", code);
-    trace_rec(
-        code,
-        &Vec::<i32>::new(),
-        &mut accesses_count,
-    );
+    trace_rec(code, &Vec::<i32>::new(), &mut accesses_count);
 
     let result = calculate::calculate_trace(&accesses_count, lru_type);
 
     (result.0, result.1, result.2, result.3, accesses_count)
 }
-
 
 #[cfg(test)]
 mod test {
@@ -107,10 +101,8 @@ mod test {
 
         let hist = trace(&mut aloop, "Olken");
 
-        
-
-        // assert_eq!(hist.0.to_vec()[0], (Some(1), 9));
-        // assert_eq!(hist.0.to_vec()[1], (None, 1));
+        assert_eq!(hist.0.to_vec()[0], (Some(1), 9));
+        assert_eq!(hist.0.to_vec()[1], (None, 1));
         println!("{}", hist.0);
     }
 }

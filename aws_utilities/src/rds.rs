@@ -1,7 +1,7 @@
+use mysql::{self, params, prelude::Queryable, Opts, OptsBuilder};
 use std::env;
-use mysql::{self, OptsBuilder, Opts, params, prelude::Queryable};
 
-pub fn connect_to_db() -> mysql::PooledConn{
+pub fn connect_to_db() -> mysql::PooledConn {
     let username = env::var("db_username").expect("db_username must be set");
     let password = env::var("db_password").expect("db_password must be set");
     let endpoint = env::var("db_endpoint").expect("db_endpoint must be set");
@@ -17,10 +17,17 @@ pub fn connect_to_db() -> mysql::PooledConn{
 
     let mysql_pool = mysql::Pool::new(opts).expect("Failed to create a MySQL Pool");
 
-    mysql_pool.get_conn().expect("Failed to get MySQL connection")
+    mysql_pool
+        .get_conn()
+        .expect("Failed to get MySQL connection")
 }
 
-pub async fn entry_exists(conn: &mut mysql::PooledConn, program: &str, lru_type: &str, argdata: &str) -> Result<bool, mysql::Error> {
+pub async fn entry_exists(
+    conn: &mut mysql::PooledConn,
+    program: &str,
+    lru_type: &str,
+    argdata: &str,
+) -> Result<bool, mysql::Error> {
     let result: Option<(u32,)> = conn.exec_first(
         "SELECT 1 FROM entries WHERE program_name = :program AND lru_type = :lru_type AND argdata = :argdata",
         params! {
@@ -36,11 +43,23 @@ pub async fn entry_exists(conn: &mut mysql::PooledConn, program: &str, lru_type:
 pub fn save_entry(
     conn: &mut mysql::PooledConn,
     params: (
-        &String, &String, &String, &String, 
-        &str, &str, &str, &str, 
-        &str, &str, &str, &str, 
-        &str, &str, &String, &String
-    )
+        &String,
+        &String,
+        &String,
+        &String,
+        &str,
+        &str,
+        &str,
+        &str,
+        &str,
+        &str,
+        &str,
+        &str,
+        &str,
+        &str,
+        &String,
+        &String,
+    ),
 ) -> Result<(), mysql::Error> {
     conn.exec_drop(
         r"INSERT INTO entries 

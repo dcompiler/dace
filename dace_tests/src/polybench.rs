@@ -68,8 +68,6 @@ use std::rc::Rc;
 //     t_loop
 // }
 
-
-
 pub fn _3mm(NI: usize, NJ: usize, NK: usize, NL: usize, NM: usize) -> Rc<Node> {
     let mut s_ref_e = Node::new_ref("e", vec![NI, NJ], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
@@ -135,7 +133,11 @@ pub fn _3mm(NI: usize, NJ: usize, NK: usize, NL: usize, NM: usize) -> Rc<Node> {
     let mut ini_loop_ref2 = Node::new_single_loop("i", 0, NI as i32);
     Node::extend_loop_body(&mut ini_loop_ref2, &mut jnl_loop_ref2);
 
-    Node::new_node(Stmt::Block(vec![ini_loop_ref1, inj_loop_ref, ini_loop_ref2]))
+    Node::new_node(Stmt::Block(vec![
+        ini_loop_ref1,
+        inj_loop_ref,
+        ini_loop_ref2,
+    ]))
 }
 
 pub fn lu(n: usize) -> Rc<Node> {

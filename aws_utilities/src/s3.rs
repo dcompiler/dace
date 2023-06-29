@@ -1,14 +1,13 @@
-use std::str::FromStr;
-use rusoto_s3::{PutObjectRequest, S3, S3Client};
-use rusoto_core::{Region, ByteStream};
-use list_serializable::ListSerializable;
+use anyhow::Result;
 use csv::Writer;
 use hist::Hist;
-use anyhow::Result;
+use list_serializable::ListSerializable;
+use rusoto_core::{ByteStream, Region};
+use rusoto_s3::{PutObjectRequest, S3Client, S3};
+use std::str::FromStr;
 
 //Save serialized data to cloud
 pub async fn save_serialized(data: &String, bucket: &str, path: &String) -> Result<()> {
-
     let region = Region::from_str("us-east-2")?;
     let s3_client = rusoto_s3::S3Client::new(region);
 
@@ -27,7 +26,11 @@ pub async fn save_serialized(data: &String, bucket: &str, path: &String) -> Resu
 }
 
 //Redundant code here
-pub async fn save_csv_list_trace(list: ListSerializable<usize>, bucket: &str, key: &String) -> Result<()> {
+pub async fn save_csv_list_trace(
+    list: ListSerializable<usize>,
+    bucket: &str,
+    key: &String,
+) -> Result<()> {
     let region = Region::from_str("us-east-2")?;
     let s3_client = rusoto_s3::S3Client::new(region);
 
@@ -51,7 +54,11 @@ pub async fn save_csv_list_trace(list: ListSerializable<usize>, bucket: &str, ke
     Ok(())
 }
 
-pub async fn save_csv_list_dist(list: ListSerializable<(usize, Option<usize>)>, bucket: &str, key: &String) -> Result<()>{
+pub async fn save_csv_list_dist(
+    list: ListSerializable<(usize, Option<usize>)>,
+    bucket: &str,
+    key: &String,
+) -> Result<()> {
     let region = Region::from_str("us-east-2")?;
     let s3_client = rusoto_s3::S3Client::new(region);
 
@@ -76,11 +83,21 @@ pub async fn save_csv_list_dist(list: ListSerializable<(usize, Option<usize>)>, 
 }
 
 pub async fn save_csv_hist(histogram: Hist, bucket: &str, key: &String) -> Result<()> {
-    let region = Region::from_str("us-east-2")?; 
+    let region = Region::from_str("us-east-2")?;
     let s3_client = S3Client::new(region);
 
-    let hist_vec = histogram.to_vec(); 
-    let hist_string = hist_vec.iter().map(|(k, v)| format!("{},{}", k.map_or_else(|| "".to_string(), |v| v.to_string()), v.to_string())).collect::<Vec<String>>().join("\n");
+    let hist_vec = histogram.to_vec();
+    let hist_string = hist_vec
+        .iter()
+        .map(|(k, v)| {
+            format!(
+                "{},{}",
+                k.map_or_else(|| "".to_string(), |v| v.to_string()),
+                v.to_string()
+            )
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
 
     let put_req = PutObjectRequest {
         bucket: bucket.to_string(),

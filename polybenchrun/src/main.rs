@@ -1,7 +1,7 @@
 use dace_tests::polybench::{_2mm, _3mm, matmul};
+use std::sync::Arc;
+use std::{env, time::Duration, time::Instant};
 use tracer::trace::trace;
-use std::{env, time::Instant, time::Duration};
-use std::sync::{Arc};
 
 fn duration_to_string(duration: Duration) -> String {
     let total_seconds = duration.as_secs();
@@ -69,16 +69,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let csv_bucket = "csv-data-dace";
 
     let trace_path_json = Arc::new(format!("trace/{}_{}_{}.json", *t_mode, *lru_mode, *argdata));
-    let hist_rd_path_json = Arc::new(format!("hist/rd/{}_{}_{}.json", *t_mode, *lru_mode, *argdata));
-    let hist_ri_path_json = Arc::new(format!("hist/ri/{}_{}_{}.json", *t_mode, *lru_mode, *argdata));
-    let dist_rd_path_json = Arc::new(format!("dist/rd/{}_{}_{}.json", *t_mode, *lru_mode, *argdata));
-    let dist_ri_path_json = Arc::new(format!("dist/ri/{}_{}_{}.json", *t_mode, *lru_mode, *argdata));
+    let hist_rd_path_json = Arc::new(format!(
+        "hist/rd/{}_{}_{}.json",
+        *t_mode, *lru_mode, *argdata
+    ));
+    let hist_ri_path_json = Arc::new(format!(
+        "hist/ri/{}_{}_{}.json",
+        *t_mode, *lru_mode, *argdata
+    ));
+    let dist_rd_path_json = Arc::new(format!(
+        "dist/rd/{}_{}_{}.json",
+        *t_mode, *lru_mode, *argdata
+    ));
+    let dist_ri_path_json = Arc::new(format!(
+        "dist/ri/{}_{}_{}.json",
+        *t_mode, *lru_mode, *argdata
+    ));
 
     let trace_path_csv = Arc::new(format!("trace/{}_{}_{}.csv", *t_mode, *lru_mode, *argdata));
-    let hist_rd_path_csv = Arc::new(format!("hist/rd/{}_{}_{}.csv", *t_mode, *lru_mode, *argdata));
-    let hist_ri_path_csv = Arc::new(format!("hist/ri/{}_{}_{}.csv", *t_mode, *lru_mode, *argdata));
-    let dist_rd_path_csv = Arc::new(format!("dist/rd/{}_{}_{}.csv", *t_mode, *lru_mode, *argdata));
-    let dist_ri_path_csv = Arc::new(format!("dist/ri/{}_{}_{}.csv", *t_mode, *lru_mode, *argdata));
+    let hist_rd_path_csv = Arc::new(format!(
+        "hist/rd/{}_{}_{}.csv",
+        *t_mode, *lru_mode, *argdata
+    ));
+    let hist_ri_path_csv = Arc::new(format!(
+        "hist/ri/{}_{}_{}.csv",
+        *t_mode, *lru_mode, *argdata
+    ));
+    let dist_rd_path_csv = Arc::new(format!(
+        "dist/rd/{}_{}_{}.csv",
+        *t_mode, *lru_mode, *argdata
+    ));
+    let dist_ri_path_csv = Arc::new(format!(
+        "dist/ri/{}_{}_{}.csv",
+        *t_mode, *lru_mode, *argdata
+    ));
     //CSV: hist ri, hist rd, dist ri, dist rd, trace
     //serialized: hist ri, hist rd, dist ri, dist rd, trace
 
@@ -99,7 +123,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .await
         }
     });
-
 
     let handle2 = tokio::spawn({
         let serialized_hist_rd_data = Arc::clone(&serialized_hist_rd_data);
@@ -151,7 +174,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let dist_ri_path_json = Arc::clone(&dist_ri_path_json);
         async move {
             let serialized_dist_ri_data = &serialized_dist_ri_data;
-            let dist_ri_path_json = &dist_ri_path_json;      
+            let dist_ri_path_json = &dist_ri_path_json;
             aws_utilities::s3::save_serialized(
                 serialized_dist_ri_data,
                 serialized_bucket,
@@ -161,98 +184,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let handle6 = tokio::spawn( {
+    let handle6 = tokio::spawn({
         let hist_rd_path_csv = Arc::clone(&hist_rd_path_csv);
-        async move {
-            aws_utilities::s3::save_csv_hist(
-                result.0,
-                csv_bucket,
-                &hist_rd_path_csv
-            )
-            .await
-        }
+        async move { aws_utilities::s3::save_csv_hist(result.0, csv_bucket, &hist_rd_path_csv).await }
     });
-    
 
-    let handle7 = tokio::spawn( {
+    let handle7 = tokio::spawn({
         let hist_ri_path_csv = Arc::clone(&hist_ri_path_csv);
-        async move {
-            aws_utilities::s3::save_csv_hist(
-                result.1,
-                csv_bucket,
-                &hist_ri_path_csv
-            )
-            .await
-        }
+        async move { aws_utilities::s3::save_csv_hist(result.1, csv_bucket, &hist_ri_path_csv).await }
     });
 
-    let handle8 = tokio::spawn( {
+    let handle8 = tokio::spawn({
         let dist_rd_path_csv = Arc::clone(&dist_rd_path_csv);
         async move {
-            aws_utilities::s3::save_csv_list_dist(
-                result.2,
-                csv_bucket,
-                &dist_rd_path_csv
-            )
-            .await
+            aws_utilities::s3::save_csv_list_dist(result.2, csv_bucket, &dist_rd_path_csv).await
         }
     });
 
-    let handle9 = tokio::spawn( {
+    let handle9 = tokio::spawn({
         let dist_ri_path_csv = Arc::clone(&dist_ri_path_csv);
         async move {
-            aws_utilities::s3::save_csv_list_dist(
-                result.3,
-                csv_bucket,
-                &dist_ri_path_csv
-            )
-            .await
+            aws_utilities::s3::save_csv_list_dist(result.3, csv_bucket, &dist_ri_path_csv).await
         }
     });
 
-    let handle10 = tokio::spawn( {
+    let handle10 = tokio::spawn({
         let trace_path_csv = Arc::clone(&trace_path_csv);
         async move {
-            aws_utilities::s3::save_csv_list_trace(
-                result.4,
-                csv_bucket,
-                &trace_path_csv
-            )
-            .await
+            aws_utilities::s3::save_csv_list_trace(result.4, csv_bucket, &trace_path_csv).await
         }
     });
-    
 
     // Store all handles in a Vec
-    let handles = vec![handle1, handle2, handle3, handle4, handle5, handle6, handle7, handle8, handle9, handle10];
+    let handles = vec![
+        handle1, handle2, handle3, handle4, handle5, handle6, handle7, handle8, handle9, handle10,
+    ];
 
     // Await them all
     for handle in handles {
         handle.await??; // Use '?' if the functions return Result<_, _>
     }
-    
 
     aws_utilities::rds::save_entry(
         &mut conn,
-        (t_mode,
-        lru_mode,
-        argdata,
-        &duration_to_string(time_elapsed),
-        &trace_path_csv,
-        &hist_rd_path_csv,
-        &hist_ri_path_csv,
-        &dist_rd_path_csv,
-        &dist_ri_path_csv,
-        &trace_path_json,
-        &hist_rd_path_json,
-        &hist_ri_path_json,
-        &dist_rd_path_json,
-        &dist_ri_path_json,
-        hash_code,
-        creator
-        )
+        (
+            t_mode,
+            lru_mode,
+            argdata,
+            &duration_to_string(time_elapsed),
+            &trace_path_csv,
+            &hist_rd_path_csv,
+            &hist_ri_path_csv,
+            &dist_rd_path_csv,
+            &dist_ri_path_csv,
+            &trace_path_json,
+            &hist_rd_path_json,
+            &hist_ri_path_json,
+            &dist_rd_path_json,
+            &dist_ri_path_json,
+            hash_code,
+            creator,
+        ),
     )?;
-
 
     Ok(())
 }
