@@ -2,5 +2,17 @@
 resolver = "2"
 members = [
     "dace",
-    "dace_tests"
+    "dace_tests",
+    "stack_alg_sim",
+    "hist",
+    "static_rd",
+    "list_serializable",
+    "stack_test_cases",
+    "benches/lruvec_bench",
+    "benches/stack_alg_sim_bench",
+    "static_ri"
 ]
+
+[profile.release]
+debug = true
+lto = true

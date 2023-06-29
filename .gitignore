@@ -21,3 +21,7 @@ Cargo.lock
 /Cargo.lock
 
 .idea
+.DS_Store
+.vscode
+flamegraph.svg
+perf.data*

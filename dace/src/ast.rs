@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::rc::{Rc, Weak};
 
@@ -6,11 +5,8 @@ use std::rc::{Rc, Weak};
 #[derive(Debug)]
 pub struct Node {
     pub stmt: Stmt,
-    parent: NodeWeakRef,
+    parent: Weak<Node>,
 }
-
-pub type NodesRef = RefCell<Vec<Rc<Node>>>;
-pub type NodeWeakRef = RefCell<Weak<Node>>;
 
 /// Statements in the loop tree.
 #[derive(Debug)]
@@ -18,9 +14,16 @@ pub enum Stmt {
     /// A single loop
     Loop(LoopStmt),
     /// A statement is a sequence of array references
-    // Ref(RefStmt),
     Ref(AryRef),
     Block(Vec<Rc<Node>>),
+    Branch(BranchStmt),
+}
+
+pub struct BranchStmt {
+    #[allow(clippy::type_complexity)]
+    pub cond: Box<dyn Fn(&[i32]) -> bool>,
+    pub then_body: Rc<Node>,
+    pub else_body: Option<Rc<Node>>,
 }
 
 pub struct LoopStmt {
@@ -32,7 +35,7 @@ pub struct LoopStmt {
     pub test: Box<dyn Fn(i32, i32) -> bool>,
     // Now we assume step is iv = iv + 1
     pub step: Box<dyn Fn(i32) -> i32>,
-    pub body: NodesRef,
+    pub body: Vec<Rc<Node>>,
 }
 
 impl Debug for LoopStmt {
@@ -42,6 +45,15 @@ impl Debug for LoopStmt {
             .field("lb", &self.lb)
             .field("ub", &self.ub)
             .field("body", &self.body)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Debug for BranchStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BranchStmt")
+            .field("then", &self.then_body)
+            .field("else", &self.else_body)
             .finish_non_exhaustive()
     }
 }
@@ -61,10 +73,6 @@ impl std::fmt::Debug for LoopBound {
     }
 }
 
-// pub struct RefStmt {
-//     pub refs: Vec<AryRef>,
-// }
-
 /// Array reference.
 pub struct AryRef {
     pub name: String,
@@ -72,7 +80,8 @@ pub struct AryRef {
     pub dim: Vec<usize>,
     /// Subscript expressions: one function for each data dimension.  
     /// Each function takes the indices of its loop nest and returns indices of the array access.
-    pub sub: Box<dyn for<'a> Fn(&'a IterVec) -> AryAcc>,
+    #[allow(clippy::type_complexity)]
+    pub sub: Box<dyn for<'a> Fn(&'a [i32]) -> AryAcc>,
     pub base: Option<usize>,
 }
 
@@ -137,20 +146,37 @@ macro_rules! loop_node {
     };
 }
 
+#[macro_export]
+macro_rules! branch_node {
+    (if ($cond:expr) {$then:tt}) => {
+        $crate::ast::Node::new_node($crate::ast::Stmt::Branch($crate::ast::BranchStmt {
+            cond: Box::new($cond),
+            then_body: $then,
+            else_body: None,
+        }))
+    };
+    (if ($cond:expr) {$then:tt} else {$else:tt}) => {
+        $crate::ast::Node::new_node($crate::ast::Stmt::Branch($crate::ast::BranchStmt {
+            cond: Box::new($cond),
+            then_body: $then,
+            else_body: Some($else),
+        }))
+    };
+}
+
 impl Node {
     /// Create a new Node with a given statement.
     pub fn new_node(a_stmt: Stmt) -> Rc<Node> {
         Rc::new(Node {
             stmt: a_stmt,
-            parent: RefCell::new(Weak::new()),
+            parent: Weak::new(),
         })
     }
 
-    pub fn new_ref(
-        ary_nm: &str,
-        ary_dim: Vec<usize>,
-        ary_sub: fn(&Vec<i32>) -> Vec<usize>,
-    ) -> Rc<Node> {
+    pub fn new_ref<F>(ary_nm: &str, ary_dim: Vec<usize>, ary_sub: F) -> Rc<Node>
+    where
+        F: for<'a> Fn(&'a [i32]) -> AryAcc + 'static,
+    {
         let ref_stmt = AryRef {
             name: ary_nm.to_string(),
             dim: ary_dim,
@@ -169,7 +195,7 @@ impl Node {
             // test: |i| i<ub , step: |k| k+1,
             test: Box::new(|i, ub| i < ub),
             step: Box::new(|i| i + 1),
-            body: RefCell::new(vec![]),
+            body: vec![],
         };
         Node::new_node(Stmt::Loop(loop_stmt))
     }
@@ -186,7 +212,7 @@ impl Node {
             // test: |i| i<ub , step: |k| k+1,
             test: Box::new(|i, ub| i < ub),
             step: Box::new(|i| i + 1),
-            body: RefCell::new(vec![]),
+            body: vec![],
         };
         Node::new_node(Stmt::Loop(loop_stmt))
     }
@@ -210,21 +236,19 @@ impl Node {
             // test: |i| i<ub , step: |k| k+1,
             test: Box::new(test),
             step: Box::new(step),
-            body: RefCell::new(vec![]),
+            body: vec![],
         };
         Node::new_node(Stmt::Loop(loop_stmt))
     }
 
     /// Extend the body of a loop node with another node.
-    pub fn extend_loop_body(loop_ref: &Rc<Node>, stmt_ref: &Rc<Node>) {
-        if let Stmt::Loop(ref lp) = loop_ref.stmt {
-            // officiating the parent-child relationship
-            *stmt_ref.parent.borrow_mut() = Rc::downgrade(loop_ref);
-            // adding to the body
-            lp.body.borrow_mut().push(Rc::clone(stmt_ref));
-        } else {
-            panic!("extend_loop_body called on non-loop node");
-        }
+    pub fn extend_loop_body(lup: &mut Rc<Node>, stmt: &mut Rc<Node>) {
+        let lup_node = unsafe { Rc::get_mut_unchecked(lup) };
+        lup_node.loop_only_mut(|lp| lp.body.push(Rc::clone(stmt)));
+
+        // officiating the parent-child relationship
+        let stmt_node = unsafe { Rc::get_mut_unchecked(stmt) };
+        stmt_node.parent = Rc::downgrade(lup);
     }
 
     pub fn loop_only<U, F>(&self, f: F) -> Option<U>
@@ -233,6 +257,16 @@ impl Node {
     {
         match &self.stmt {
             Stmt::Loop(ref aloop) => Some(f(aloop)),
+            _ => None,
+        }
+    }
+
+    pub fn loop_only_mut<U, F>(&mut self, f: F) -> Option<U>
+    where
+        F: FnOnce(&mut LoopStmt) -> U,
+    {
+        match &mut self.stmt {
+            Stmt::Loop(ref mut aloop) => Some(f(aloop)),
             _ => None,
         }
     }
@@ -299,7 +333,6 @@ impl Node {
             Stmt::Loop(a_loop) => {
                 1 + a_loop
                     .body
-                    .borrow()
                     .iter()
                     .map(|x| x.as_ref().node_count())
                     .sum::<u32>()
@@ -311,21 +344,18 @@ impl Node {
                     .map(|x| x.as_ref().node_count())
                     .sum::<u32>()
             }
+            Stmt::Branch(stmt) => {
+                stmt.then_body.node_count()
+                    + stmt.else_body.as_ref().map(|x| x.node_count()).unwrap_or(0)
+                    + 1
+            }
         }
     }
 }
 
 // impl RefStmt {
-//     fn my_nest(&self) -> Node {
-//         // follow the parent pointers and return all enclosing loops as a Node
-//         // let mut parent = self.parent.borrow().upgrade();
-//         // while let Some(p) = parent {
-//         //     match p {
-//         //         Node::Loop(_) => return p,
-//         //         Node::Ref(_) => parent = p.parent.borrow().upgrade(),
-//         //     }
-//         // }
-//         // unreachable!("No enclosing loop found!")
+//     // A copy of the enclosing loops just for this reference.
+//     fn my_nest(&self) -> Rc<Node> {
 //     }
 // }
 
@@ -341,7 +371,7 @@ mod tests {
             sub: Box::new(|iv| vec![(iv[0] as usize) + 1]),
             base: None,
         };
-        assert_eq!((ar.sub)(&vec![1]), [2]);
+        assert_eq!((ar.sub)(&[1]), [2]);
     }
 
     #[test]
@@ -349,29 +379,29 @@ mod tests {
         let n: usize = 100; // array dim
         let ubound = n as i32; // loop bound
                                // creating C[i,j] += A[i,k] * B[k,j]
-        let s_ref_c = Node::new_ref("C", vec![n, n], |ijk| {
+        let ref_c = Node::new_ref("C", vec![n, n], |ijk| {
             vec![ijk[0] as usize, ijk[1] as usize]
         });
-        let s_ref_a = Node::new_ref("A", vec![n, n], |ijk| {
+        let ref_a = Node::new_ref("A", vec![n, n], |ijk| {
             vec![ijk[0] as usize, ijk[2] as usize]
         });
-        let s_ref_b = Node::new_ref("B", vec![n, n], |ijk| {
+        let ref_b = Node::new_ref("B", vec![n, n], |ijk| {
             vec![ijk[2] as usize, ijk[1] as usize]
         });
 
         // creating loop k = 0, n { s_ref }
-        let k_loop_ref = Node::new_single_loop("k", 0, ubound);
-        Node::extend_loop_body(&k_loop_ref, &s_ref_c);
-        Node::extend_loop_body(&k_loop_ref, &s_ref_a);
-        Node::extend_loop_body(&k_loop_ref, &s_ref_b);
+        let mut k_loop = Node::new_single_loop("k", 0, ubound);
+        vec![ref_c, ref_a, ref_b]
+            .iter_mut()
+            .for_each(|s| Node::extend_loop_body(&mut k_loop, s));
         // creating loop j = 0, n
-        let j_loop_ref = Node::new_single_loop("j", 0, ubound);
-        Node::extend_loop_body(&j_loop_ref, &k_loop_ref);
+        let mut j_loop = Node::new_single_loop("j", 0, ubound);
+        Node::extend_loop_body(&mut j_loop, &mut k_loop);
         // creating loop i = 0, n
-        let i_loop_ref = Node::new_single_loop("i", 0, ubound);
-        Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
+        let mut i_loop = Node::new_single_loop("i", 0, ubound);
+        Node::extend_loop_body(&mut i_loop, &mut j_loop);
 
-        assert_eq!(i_loop_ref.node_count(), 6);
+        assert_eq!(i_loop.node_count(), 6);
     }
 
     #[test]
@@ -380,12 +410,12 @@ mod tests {
         //     for j in 0 .. n - i
         let n: usize = 100; // array dim
         let ubound = n as i32; // loop bound
-        let j_loop_ref = Node::new_single_loop_dyn_ub("j", 0, move |i| ubound - i[0]);
+        let mut j_loop = Node::new_single_loop_dyn_ub("j", 0, move |i| ubound - i[0]);
         // creating loop i = 0, n
-        let i_loop_ref = Node::new_single_loop("i", 0, ubound);
-        Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
+        let mut i_loop = Node::new_single_loop("i", 0, ubound);
+        Node::extend_loop_body(&mut i_loop, &mut j_loop);
 
-        assert_eq!(i_loop_ref.node_count(), 2);
+        assert_eq!(i_loop.node_count(), 2);
     }
 
     #[test]
@@ -394,12 +424,55 @@ mod tests {
         //     for j in 0 .. n - i
         let n: usize = 100; // array dim
         let ubound = n as i32; // loop bound
-        let j_loop_ref = loop_node!("j", 0 => move |i : &[i32]| ubound - i[0]);
+        let mut j_loop = loop_node!("j", 0 => move |i : &[i32]| ubound - i[0]);
         // creating loop i = 0, n
-        let i_loop_ref = loop_node!("i", 0 => ubound, step: |x| x + 2);
-        Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
+        let mut i_loop = loop_node!("i", 0 => ubound, step: |x| x + 2);
+        Node::extend_loop_body(&mut i_loop, &mut j_loop);
 
-        assert_eq!(i_loop_ref.node_count(), 2);
+        assert_eq!(i_loop.node_count(), 2);
+    }
+    #[test]
+    fn example_if_then() {
+        // for i in 0..n step by 2
+        let ubound = 100; // loop bound
+
+        let ref_a = Node::new_ref("A", vec![100], |i| vec![i[0] as usize]);
+
+        let mut branch = branch_node! {
+            if (|ivec| ivec[0] & 1 == 0) {
+                ref_a
+            }
+        };
+
+        // creating loop i = 0, n
+        let mut i_loop = loop_node!("i", 0 => ubound, step: |x| x + 2);
+        Node::extend_loop_body(&mut i_loop, &mut branch);
+
+        assert_eq!(i_loop.node_count(), 3);
+    }
+
+    #[test]
+    fn example_if_then_else() {
+        // for i in 0..n step by 2
+        let ubound = 100; // loop bound
+
+        let ref_a = Node::new_ref("A", vec![100], |i| vec![i[0] as usize]);
+
+        let ref_b = Node::new_ref("B", vec![100], |i| vec![i[0] as usize]);
+
+        let mut branch = branch_node! {
+            if (|ivec| ivec[0] & 1 == 0) {
+                ref_a
+            } else {
+                ref_b
+            }
+        };
+
+        // creating loop i = 0, n
+        let mut i_loop = loop_node!("i", 0 => ubound, step: |x| x + 2);
+        Node::extend_loop_body(&mut i_loop, &mut branch);
+
+        assert_eq!(i_loop.node_count(), 4);
     }
 
     #[test]
@@ -409,19 +482,19 @@ mod tests {
         // for (int c0 = 0; c0 < n; c0 += 1)
         // for (int c1 = 0; c1 < n; c1 += 1)
         //   x1[c0] = (x1[c0] + (A[c0][c1] * y_1[c1]));
-        let s_ref_x1 = Node::new_ref("x1", vec![n], |ij| vec![ij[0] as usize]);
-        let s_ref_a = Node::new_ref("a", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
-        let s_ref_y1 = Node::new_ref("y1", vec![n], |ij| vec![ij[1] as usize]);
+        let ref_x1 = Node::new_ref("x1", vec![n], |ij| vec![ij[0] as usize]);
+        let ref_a = Node::new_ref("a", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+        let ref_y1 = Node::new_ref("y1", vec![n], |ij| vec![ij[1] as usize]);
 
-        let j_loop_ref = Node::new_single_loop("j", 0, ubound);
-        Node::extend_loop_body(&j_loop_ref, &s_ref_x1);
-        Node::extend_loop_body(&j_loop_ref, &s_ref_a);
-        Node::extend_loop_body(&j_loop_ref, &s_ref_y1);
+        let mut j_loop = Node::new_single_loop("j", 0, ubound);
+        vec![ref_x1, ref_a, ref_y1]
+            .iter_mut()
+            .for_each(|s| Node::extend_loop_body(&mut j_loop, s));
 
-        let i_loop_ref = Node::new_single_loop("i", 0, ubound);
-        Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
+        let mut i_loop = Node::new_single_loop("i", 0, ubound);
+        Node::extend_loop_body(&mut i_loop, &mut j_loop);
 
-        assert_eq!(i_loop_ref.node_count(), 5);
+        assert_eq!(i_loop.node_count(), 5);
     }
 
     // #[test]
@@ -431,25 +504,5 @@ mod tests {
     //     //     for (int c0 = 0; c0 < n; c0 += 1)
     //     //     for (int c1 = 0; c1 < n; c1 += 1)
     //     //     x2[c0] = (x2[c0] + (A[c1][c0] * y_2[c1]));
-    //     let x2 = AryRef { name: "x2".to_string(), dim: vec![n], sub: |i| vec![i[0]] };
-    //     let a = AryRef { name: "A".to_string(), dim: vec![n,n], sub: |ij| vec![ij[0], ij[1]] };
-    //     let y2 = AryRef { name: "y2".to_string(), dim: vec![n], sub: |j| vec![j[0], j[1]] };
-    //     // let s = RefStmt{ refs: vec![x2.clone(), x2.clone(), a.clone(), y2.clone()] };
-    //     // let s = vec![x2.clone(), x2.clone(), a.clone(), y2.clone()];
-    //     // let s_ref = Node::new_node(Stmt::Ref(s));
-
-    //     let s_ref_x1 = Node::new_node(Stmt::Ref(x2));
-    //     let s_ref_a = Node::new_node(Stmt::Ref(a));
-    //     let s_ref_y1 = Node::new_node(Stmt::Ref(y2));
-
-    //     let j_loop_ref = Node::new_single_loop("j", 0, ubound);
-    //     Node::extend_loop_body(&j_loop_ref, &s_ref_x1);
-    //     Node::extend_loop_body(&j_loop_ref, &s_ref_a);
-    //     Node::extend_loop_body(&j_loop_ref, &s_ref_y1);
-
-    //     let i_loop_ref = Node::new_single_loop("i", 0, ubound);
-    //     Node::extend_loop_body(&i_loop_ref, &j_loop_ref);
-
-    //     assert_eq!(i_loop_ref.node_count(), 5);
     // }
 }
