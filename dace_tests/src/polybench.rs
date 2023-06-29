@@ -463,6 +463,130 @@ pub fn gramschmidt_trace(n: usize, m: usize) -> Rc<Node> {
     k_loop_ref
 }
 
+pub fn heat_3d(m: usize, n: usize) -> Rc<Node> {
+    // n: usize is array dim
+    let ubound = n as i32; // loop bound
+    let tsteps = m as i32; // steps bound
+    
+    let mut t_loop_ref = Node::new_single_loop("t", 0, tsteps);
+    let mut i_loop_ref_1 = Node::new_single_loop("i_1", 0, ubound);
+    let mut j_loop_ref_1 = Node::new_single_loop("j_1", 0, ubound);
+    let mut k_loop_ref_1 = Node::new_single_loop("k_1", 0, ubound);
+
+
+    let mut s_ref_a_1 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize + 1, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a_2 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a_3 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize - 1, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a_4 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize + 1, ijk[2] as usize]
+    });
+    let mut s_ref_a_5 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a_6 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize - 1, ijk[2] as usize]
+    });
+    let mut s_ref_a_7 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize + 1]
+    });
+    let mut s_ref_a_8 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a_9 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize - 1]
+    });
+    let mut s_ref_a_10 = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+
+    let mut s_ref_b = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_1);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_2);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_3);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_4);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_5);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_6);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_7);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_8);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_9);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_a_10);
+    Node::extend_loop_body(&mut k_loop_ref_1, &mut s_ref_b);
+
+    Node::extend_loop_body(&mut j_loop_ref_1, &mut k_loop_ref_1);
+    Node::extend_loop_body(&mut i_loop_ref_1, &mut j_loop_ref_1);
+
+
+    let mut i_loop_ref_2 = Node::new_single_loop("i_2", 0, ubound);
+    let mut j_loop_ref_2 = Node::new_single_loop("j_2", 0, ubound);
+    let mut k_loop_ref_2 = Node::new_single_loop("k_2", 0, ubound);
+
+
+    let mut s_ref_b_1 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize + 1, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_b_2 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_b_3 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize - 1, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_b_4 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize + 1, ijk[2] as usize]
+    });
+    let mut s_ref_b_5 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_b_6 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize - 1, ijk[2] as usize]
+    });
+    let mut s_ref_b_7 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize + 1]
+    });
+    let mut s_ref_b_8 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_b_9 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize - 1]
+    });
+    let mut s_ref_b_10 = Node::new_ref("B", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a = Node::new_ref("A", vec![n, n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
+    });
+
+
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_1);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_2);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_3);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_4);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_5);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_6);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_7);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_8);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_9);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_10);
+    Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_a);
+
+    Node::extend_loop_body(&mut j_loop_ref_2, &mut k_loop_ref_2);
+    Node::extend_loop_body(&mut i_loop_ref_2, &mut j_loop_ref_2);
+
+
+    Node::extend_loop_body(&mut t_loop_ref, &mut i_loop_ref_1);
+    Node::extend_loop_body(&mut t_loop_ref, &mut i_loop_ref_2);
+
+    t_loop_ref
+}
+  
 pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
     let mut mat_a_ref = Node::new_ref("A", vec![ni, nj], |ij| vec![ij[0] as usize, ij[1] as usize]);
 
@@ -559,5 +683,11 @@ mod tests {
     #[test]
     fn gram_schmidt_test() {
         assert_eq!(gramschmidt_trace(1024, 1024).node_count(), 21);
+    }
+
+    #[test]
+    fn heat_3d_test() {
+        let mm = heat_3d(5, 100);
+        assert_eq!(mm.node_count(), 29);
     }
 }
