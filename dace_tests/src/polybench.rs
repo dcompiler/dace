@@ -343,6 +343,7 @@ pub fn cholesky(n: usize) -> Rc<Node> {
     });
 
     // create A[i * N + j] /= A[j * N + j];
+
     let mut s_ref_aij2 = Node::new_ref("a", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
@@ -355,6 +356,7 @@ pub fn cholesky(n: usize) -> Rc<Node> {
     });
 
     //create A[i * N + i] = sqrt(A[i * N + i]);
+
 
     let mut s_ref_aii2 = Node::new_ref("a", vec![n], |ijk| vec![ijk[0] as usize]);
 
@@ -505,6 +507,7 @@ mod tests {
     fn test_syr2d() {
         assert_eq!(syr2d(1024, 1024).node_count(), 12);
     }
+
 
     #[test]
     fn test_gemm_rd_olken() {
