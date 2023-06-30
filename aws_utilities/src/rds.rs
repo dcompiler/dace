@@ -12,9 +12,9 @@ pub fn connect_to_db() -> mysql::PooledConn {
     println!("{}", name);
 
     let builder = OptsBuilder::default()
+        .ip_or_hostname(Some(endpoint))
         .user(Some(username))
         .pass(Some(password))
-        .ip_or_hostname(Some(endpoint))
         .db_name(Some(name));
 
     let opts = Opts::from(builder);
