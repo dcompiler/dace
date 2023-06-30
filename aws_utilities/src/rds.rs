@@ -11,14 +11,17 @@ pub fn connect_to_db() -> mysql::PooledConn {
     println!("{}", endpoint);
     println!("{}", name);
 
-    let builder = OptsBuilder::default()
-        .ip_or_hostname(Some(endpoint))
-        .user(Some(username))
-        .pass(Some(password))
-        .db_name(Some(name));
+    let port = 3306; // MySQL default port
 
-    let opts = Opts::from(builder);
+    let url = format!(
+        "mysql://{}:{}@{}:{}/{}",
+        username, password, endpoint, port, name
+    );
 
+    let opts = Opts::from_url(&url)
+        .expect("Failed to parse MySQL URL");
+
+    
     let mysql_pool = mysql::Pool::new(opts).expect("Failed to create a MySQL Pool");
 
     mysql_pool
