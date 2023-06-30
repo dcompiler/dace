@@ -6,6 +6,10 @@ pub fn connect_to_db() -> mysql::PooledConn {
     let password = env::var("db_password").expect("db_password must be set");
     let endpoint = env::var("db_endpoint").expect("db_endpoint must be set");
     let name = env::var("db_name").expect("db_name must be set");
+    println!("{}", username);
+    println!("{}", password);
+    println!("{}", endpoint);
+    println!("{}", name);
 
     let builder = OptsBuilder::default()
         .user(Some(username))
