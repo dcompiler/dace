@@ -52,12 +52,20 @@ fn trace_rec(code: &Rc<Node>, ivec: &[i32], data_accesses: &mut ListSerializable
 pub fn trace(
     code: &mut Rc<Node>,
     lru_type: &str,
+    data_collection: &str
 ) -> (Hist, Hist, Reuse, Reuse, ListSerializable<usize>) {
     let mut accesses_count: ListSerializable<usize> = ListSerializable::<usize>::new();
 
     set_arybase(code);
     println!("{:?}", code);
     trace_rec(code, &Vec::<i32>::new(), &mut accesses_count);
+
+    // let result = match data_collection {
+    //     "both" => calculate::calculate_trace(&accesses_count, lru_type),
+    //     "ri" => ,
+    //     "rd" => ,
+    //     _ => calculate::calculate_trace(&accesses_count, lru_type)
+    // };
 
     let result = calculate::calculate_trace(&accesses_count, lru_type);
 

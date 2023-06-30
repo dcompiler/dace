@@ -1,4 +1,4 @@
-use dace_tests::polybench::{_2mm, _3mm, matmul};
+use dace_tests::polybench::{_2mm, _3mm, matmul, lu, trmm_trace, mvt, trisolv, syrk, syr2d, gemm, cholesky, gramschmidt_trace};
 use std::sync::Arc;
 use std::{env, time::Duration, time::Instant};
 use tracer::trace::trace;
@@ -15,7 +15,7 @@ fn duration_to_string(duration: Duration) -> String {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    if args.len() < 4 {
+    if args.len() < 6 {
         println!("Format:   exe   lru_mode   test_mode   data1,data2,data3,data4,...");
         return Ok(());
     }
@@ -23,31 +23,66 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let lru_mode = &args[1];
     let t_mode = &args[2];
     let creator = &args[3];
-    let hash_code = &args[4];
+    let hash_code = &args[4]; //1.0 for now
     let argdata = &args[5];
+    let skip = &args[6]; //typically should be no
+    let data_collection = &args[7]; //choose both
 
     let mut conn = aws_utilities::rds::connect_to_db();
 
-    if aws_utilities::rds::entry_exists(&mut conn, t_mode, lru_mode, argdata).await? {
-        println!("Entry already exists. Aborting.");
-        return Ok(());
+    if skip != "yes" {
+        if aws_utilities::rds::entry_exists(&mut conn, t_mode, lru_mode, argdata).await? {
+            println!("Entry already exists. Aborting.");
+            return Ok(());
+        }
     }
-
+    
     let split: Vec<&str> = argdata.split(',').collect();
 
     let mut loop_code = match t_mode.as_str() {
+        "lu" => lu(
+            split[0].parse::<usize>().unwrap()
+        ),
+        "trmm_trace" => trmm_trace(
+            split[0].parse::<usize>().unwrap(),
+            split[1].parse::<usize>().unwrap()
+        ),
+        "mvt" => mvt(
+            split[0].parse::<usize>().unwrap()
+        ),
+        "trisolv" => trisolv(
+            split[0].parse::<usize>().unwrap()
+        ),
+        "syrk" => syrk(
+            split[0].parse::<usize>().unwrap(),
+            split[1].parse::<usize>().unwrap()
+        ),
+        "syr2d" => syr2d(
+            split[0].parse::<usize>().unwrap(),
+            split[1].parse::<usize>().unwrap()
+        ),
+        "gemm" => gemm(
+            split[0].parse::<usize>().unwrap()
+        ),
+        "cholesky" => cholesky(
+            split[0].parse::<usize>().unwrap()
+        ),
+        "gramschmidt_trace" => gramschmidt_trace(
+            split[0].parse::<usize>().unwrap(),
+            split[1].parse::<usize>().unwrap()
+        ),
         "3mm" => _3mm(
             split[0].parse::<usize>().unwrap(),
             split[1].parse::<usize>().unwrap(),
             split[2].parse::<usize>().unwrap(),
             split[3].parse::<usize>().unwrap(),
-            split[4].parse::<usize>().unwrap(),
+            split[4].parse::<usize>().unwrap()
         ),
         "2mm" => _2mm(
             split[0].parse::<usize>().unwrap(),
             split[1].parse::<usize>().unwrap(),
             split[2].parse::<usize>().unwrap(),
-            split[3].parse::<usize>().unwrap(),
+            split[3].parse::<usize>().unwrap()
         ),
         "matmul" => matmul(split[0].parse::<usize>().unwrap()),
         _ => matmul(split[0].parse::<usize>().unwrap()),
@@ -55,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let start = Instant::now();
 
-    let result = trace(&mut loop_code, lru_mode);
+    let result = trace(&mut loop_code, lru_mode, data_collection);
 
     let time_elapsed = start.elapsed();
 

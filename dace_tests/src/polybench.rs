@@ -662,7 +662,7 @@ mod tests {
         let mut trace = gemm(128);
         let start = Instant::now();
         // let hist = tracer::trace::trace(&mut trace);
-        let hist = tracer::trace::trace(&mut trace, "Olken");
+        let hist = tracer::trace::trace(&mut trace, "Olken", "both");
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
         println!("hist: {}", hist.0);
