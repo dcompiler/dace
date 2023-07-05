@@ -357,7 +357,6 @@ pub fn cholesky(n: usize) -> Rc<Node> {
 
     //create A[i * N + i] = sqrt(A[i * N + i]);
 
-
     let mut s_ref_aii2 = Node::new_ref("a", vec![n], |ijk| vec![ijk[0] as usize]);
 
     let mut k1_loop_ref = Node::new_single_loop_dyn_ub("k", 0, move |j| j[0]);
@@ -467,12 +466,11 @@ pub fn heat_3d(m: usize, n: usize) -> Rc<Node> {
     // n: usize is array dim
     let ubound = n as i32; // loop bound
     let tsteps = m as i32; // steps bound
-    
+
     let mut t_loop_ref = Node::new_single_loop("t", 0, tsteps);
     let mut i_loop_ref_1 = Node::new_single_loop("i_1", 0, ubound);
     let mut j_loop_ref_1 = Node::new_single_loop("j_1", 0, ubound);
     let mut k_loop_ref_1 = Node::new_single_loop("k_1", 0, ubound);
-
 
     let mut s_ref_a_1 = Node::new_ref("A", vec![n, n, n], |ijk| {
         vec![ijk[0] as usize + 1, ijk[1] as usize, ijk[2] as usize]
@@ -524,11 +522,9 @@ pub fn heat_3d(m: usize, n: usize) -> Rc<Node> {
     Node::extend_loop_body(&mut j_loop_ref_1, &mut k_loop_ref_1);
     Node::extend_loop_body(&mut i_loop_ref_1, &mut j_loop_ref_1);
 
-
     let mut i_loop_ref_2 = Node::new_single_loop("i_2", 0, ubound);
     let mut j_loop_ref_2 = Node::new_single_loop("j_2", 0, ubound);
     let mut k_loop_ref_2 = Node::new_single_loop("k_2", 0, ubound);
-
 
     let mut s_ref_b_1 = Node::new_ref("B", vec![n, n, n], |ijk| {
         vec![ijk[0] as usize + 1, ijk[1] as usize, ijk[2] as usize]
@@ -564,7 +560,6 @@ pub fn heat_3d(m: usize, n: usize) -> Rc<Node> {
         vec![ijk[0] as usize, ijk[1] as usize, ijk[2] as usize]
     });
 
-
     Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_1);
     Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_2);
     Node::extend_loop_body(&mut k_loop_ref_2, &mut s_ref_b_3);
@@ -580,13 +575,12 @@ pub fn heat_3d(m: usize, n: usize) -> Rc<Node> {
     Node::extend_loop_body(&mut j_loop_ref_2, &mut k_loop_ref_2);
     Node::extend_loop_body(&mut i_loop_ref_2, &mut j_loop_ref_2);
 
-
     Node::extend_loop_body(&mut t_loop_ref, &mut i_loop_ref_1);
     Node::extend_loop_body(&mut t_loop_ref, &mut i_loop_ref_2);
 
     t_loop_ref
 }
-  
+
 pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
     let mut mat_a_ref = Node::new_ref("A", vec![ni, nj], |ij| vec![ij[0] as usize, ij[1] as usize]);
 
@@ -631,7 +625,6 @@ mod tests {
     fn test_syr2d() {
         assert_eq!(syr2d(1024, 1024).node_count(), 12);
     }
-
 
     #[test]
     fn test_gemm_rd_olken() {
