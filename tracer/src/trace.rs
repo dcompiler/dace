@@ -52,7 +52,7 @@ fn trace_rec(code: &Rc<Node>, ivec: &[i32], data_accesses: &mut ListSerializable
 pub fn trace(
     code: &mut Rc<Node>,
     lru_type: &str,
-    data_collection: &str
+    data_collection: &str,
 ) -> (Hist, Hist, Reuse, Reuse, ListSerializable<usize>) {
     let mut accesses_count: ListSerializable<usize> = ListSerializable::<usize>::new();
 

@@ -1,5 +1,6 @@
 use mysql::{self, params, prelude::Queryable, Opts, OptsBuilder};
 use std::env;
+use urlencoding::encode;
 
 pub fn connect_to_db() -> mysql::PooledConn {
     let username = env::var("db_username").expect("db_username must be set");
@@ -10,6 +11,8 @@ pub fn connect_to_db() -> mysql::PooledConn {
     println!("{}", password);
     println!("{}", endpoint);
     println!("{}", name);
+
+    // encode()
 
     let port = 3306; // MySQL default port
 

@@ -1,4 +1,7 @@
-use dace_tests::polybench::{_2mm, _3mm, matmul, lu, trmm_trace, mvt, trisolv, syrk, syr2d, gemm, cholesky, gramschmidt_trace};
+use dace_tests::polybench::{
+    _2mm, _3mm, cholesky, gemm, gramschmidt_trace, lu, matmul, mvt, syr2d, syrk, trisolv,
+    trmm_trace,
+};
 use std::sync::Arc;
 use std::{env, time::Duration, time::Instant};
 use tracer::trace::trace;
@@ -36,53 +39,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Ok(());
         }
     }
-    
+
     let split: Vec<&str> = argdata.split(',').collect();
 
     let mut loop_code = match t_mode.as_str() {
-        "lu" => lu(
-            split[0].parse::<usize>().unwrap()
-        ),
+        "lu" => lu(split[0].parse::<usize>().unwrap()),
         "trmm_trace" => trmm_trace(
             split[0].parse::<usize>().unwrap(),
-            split[1].parse::<usize>().unwrap()
+            split[1].parse::<usize>().unwrap(),
         ),
-        "mvt" => mvt(
-            split[0].parse::<usize>().unwrap()
-        ),
-        "trisolv" => trisolv(
-            split[0].parse::<usize>().unwrap()
-        ),
+        "mvt" => mvt(split[0].parse::<usize>().unwrap()),
+        "trisolv" => trisolv(split[0].parse::<usize>().unwrap()),
         "syrk" => syrk(
             split[0].parse::<usize>().unwrap(),
-            split[1].parse::<usize>().unwrap()
+            split[1].parse::<usize>().unwrap(),
         ),
         "syr2d" => syr2d(
             split[0].parse::<usize>().unwrap(),
-            split[1].parse::<usize>().unwrap()
+            split[1].parse::<usize>().unwrap(),
         ),
-        "gemm" => gemm(
-            split[0].parse::<usize>().unwrap()
-        ),
-        "cholesky" => cholesky(
-            split[0].parse::<usize>().unwrap()
-        ),
+        "gemm" => gemm(split[0].parse::<usize>().unwrap()),
+        "cholesky" => cholesky(split[0].parse::<usize>().unwrap()),
         "gramschmidt_trace" => gramschmidt_trace(
             split[0].parse::<usize>().unwrap(),
-            split[1].parse::<usize>().unwrap()
+            split[1].parse::<usize>().unwrap(),
         ),
         "3mm" => _3mm(
             split[0].parse::<usize>().unwrap(),
             split[1].parse::<usize>().unwrap(),
             split[2].parse::<usize>().unwrap(),
             split[3].parse::<usize>().unwrap(),
-            split[4].parse::<usize>().unwrap()
+            split[4].parse::<usize>().unwrap(),
         ),
         "2mm" => _2mm(
             split[0].parse::<usize>().unwrap(),
             split[1].parse::<usize>().unwrap(),
             split[2].parse::<usize>().unwrap(),
-            split[3].parse::<usize>().unwrap()
+            split[3].parse::<usize>().unwrap(),
         ),
         "matmul" => matmul(split[0].parse::<usize>().unwrap()),
         _ => matmul(split[0].parse::<usize>().unwrap()),
