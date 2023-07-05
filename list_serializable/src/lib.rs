@@ -1,27 +1,23 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub struct ListSerializable<T> {
-    accesses: Vec<T>,
+pub struct ListSerializable {
+    accesses: Vec<usize>,
 }
 
-impl<T> ListSerializable<T> {
+impl ListSerializable {
     pub fn new() -> Self {
         ListSerializable {
             accesses: Vec::new(),
         }
     }
 
-    pub fn add(&mut self, value: T) {
+    pub fn add(&mut self, value: usize) {
         self.accesses.push(value);
-    }
-
-    pub fn get_vec(&self) -> &Vec<T> {
-        &self.accesses
     }
 }
 
-impl<T> Default for ListSerializable<T> {
+impl Default for ListSerializable {
     fn default() -> Self {
         Self::new()
     }
