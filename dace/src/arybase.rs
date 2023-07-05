@@ -48,8 +48,12 @@ pub fn sample_collect<'a>(
             let accesses: Vec<_> = wrapping_loops
                 .iter()
                 .filter_map(|x| {
-                    let LoopBound::Fixed(lb) = x.lb else { return None };
-                    let LoopBound::Fixed(ub) = x.ub else { return  None };
+                    let LoopBound::Fixed(lb) = x.lb else {
+                        return None;
+                    };
+                    let LoopBound::Fixed(ub) = x.ub else {
+                        return None;
+                    };
                     Some((x.iv.as_str(), lb as usize..ub as usize))
                 })
                 .collect();
