@@ -391,7 +391,7 @@ mod tests {
 
         // creating loop k = 0, n { s_ref }
         let mut k_loop = Node::new_single_loop("k", 0, ubound);
-        vec![ref_c, ref_a, ref_b]
+        [ref_c, ref_a, ref_b]
             .iter_mut()
             .for_each(|s| Node::extend_loop_body(&mut k_loop, s));
         // creating loop j = 0, n
@@ -487,7 +487,7 @@ mod tests {
         let ref_y1 = Node::new_ref("y1", vec![n], |ij| vec![ij[1] as usize]);
 
         let mut j_loop = Node::new_single_loop("j", 0, ubound);
-        vec![ref_x1, ref_a, ref_y1]
+        [ref_x1, ref_a, ref_y1]
             .iter_mut()
             .for_each(|s| Node::extend_loop_body(&mut j_loop, s));
 
