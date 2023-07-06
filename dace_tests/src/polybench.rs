@@ -868,48 +868,48 @@ pub fn nussinov(n: usize) -> Rc<Node> {
     let ubound = n as i32;
 
     // creating table[i][j] = max_score(table[i][j], table[i][j-1])
-    let mut s_ref_if1_t1 = Node::new_ref("if1_t1", vec![n, n], |ijk| {
+    let s_ref_if1_t1 = Node::new_ref("if1_t1", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
-    let mut s_ref_if1_t2 = Node::new_ref("if1_t2", vec![n, n], |ijk| {
+    let s_ref_if1_t2 = Node::new_ref("if1_t2", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize - 1]
     });
-    let mut s_ref_if1_t3 = Node::new_ref("if1_t3", vec![n, n], |ijk| {
+    let s_ref_if1_t3 = Node::new_ref("if1_t3", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
 
     // creating table[i][j] = max_score(table[i][j], table[i+1][j])
-    let mut s_ref_if2_t1 = Node::new_ref("if2_t1", vec![n, n], |ijk| {
+    let s_ref_if2_t1 = Node::new_ref("if2_t1", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
-    let mut s_ref_if2_t2 = Node::new_ref("if2_t2", vec![n, n], |ijk| {
+    let s_ref_if2_t2 = Node::new_ref("if2_t2", vec![n, n], |ijk| {
         vec![ijk[0] as usize + 1, ijk[1] as usize]
     });
-    let mut s_ref_if2_t3 = Node::new_ref("if2_t3", vec![n, n], |ijk| {
+    let s_ref_if2_t3 = Node::new_ref("if2_t3", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
 
     // creating table[i][j] = max_score(table[i][j], table[i+1][j-1]+match(seq[i], seq[j]))
-    let mut s_ref_if3_t1 = Node::new_ref("if3_t1", vec![n, n], |ijk| {
+    let s_ref_if3_t1 = Node::new_ref("if3_t1", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
-    let mut s_ref_if3_t2 = Node::new_ref("if3_t2", vec![n, n], |ijk| {
+    let s_ref_if3_t2 = Node::new_ref("if3_t2", vec![n, n], |ijk| {
         vec![ijk[0] as usize + 1, ijk[1] as usize - 1]
     });
-    let mut s_ref_if3_s1 = Node::new_ref("if3_s1", vec![n], |ijk| vec![ijk[0] as usize]);
-    let mut s_ref_if3_s2 = Node::new_ref("if3_s2", vec![n], |ijk| vec![ijk[1] as usize]);
-    let mut s_ref_if3_t3 = Node::new_ref("if3_t3", vec![n, n], |ijk| {
+    let s_ref_if3_s1 = Node::new_ref("if3_s1", vec![n], |ijk| vec![ijk[0] as usize]);
+    let s_ref_if3_s2 = Node::new_ref("if3_s2", vec![n], |ijk| vec![ijk[1] as usize]);
+    let s_ref_if3_t3 = Node::new_ref("if3_t3", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
 
     // creating table[i][j] = max_score(table[i][j], table[i+1][j-1])
-    let mut s_ref_else3_t1 = Node::new_ref("else3_t1", vec![n, n], |ijk| {
+    let s_ref_else3_t1 = Node::new_ref("else3_t1", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
-    let mut s_ref_else3_t2 = Node::new_ref("else3_t2", vec![n, n], |ijk| {
+    let s_ref_else3_t2 = Node::new_ref("else3_t2", vec![n, n], |ijk| {
         vec![ijk[0] as usize + 1, ijk[1] as usize - 1]
     });
-    let mut s_ref_else3_t3 = Node::new_ref("else3_t3", vec![n, n], |ijk| {
+    let s_ref_else3_t3 = Node::new_ref("else3_t3", vec![n, n], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
 
@@ -928,15 +928,15 @@ pub fn nussinov(n: usize) -> Rc<Node> {
     });
 
     // creating if else branches
-    let mut q1 = Node::new_node(Stmt::Block(vec![s_ref_if1_t1, s_ref_if1_t2, s_ref_if1_t3]));
+    let q1 = Node::new_node(Stmt::Block(vec![s_ref_if1_t1, s_ref_if1_t2, s_ref_if1_t3]));
     let mut branch1 = branch_node! {
-        if (|ijk| ijk[1] - 1 >= 0) {
+        if (|ijk| ijk[1] > 0) {
             //[s_ref_if1_t1, s_ref_if1_t2, s_ref_if1_t3]
             q1
         }
     };
 
-    let mut q2 = Node::new_node(Stmt::Block(vec![s_ref_if2_t1, s_ref_if2_t2, s_ref_if2_t3]));
+    let q2 = Node::new_node(Stmt::Block(vec![s_ref_if2_t1, s_ref_if2_t2, s_ref_if2_t3]));
     let mut branch2 = branch_node! {
         if (move |ijk| ijk[0] + 1 < ubound) {
             //[s_ref_if2_t1, s_ref_if2_t2, s_ref_if2_t3]
@@ -944,19 +944,19 @@ pub fn nussinov(n: usize) -> Rc<Node> {
         }
     };
 
-    let mut q3 = Node::new_node(Stmt::Block(vec![
+    let q3 = Node::new_node(Stmt::Block(vec![
         s_ref_if3_t1,
         s_ref_if3_t2,
         s_ref_if3_s1,
         s_ref_if3_s2,
         s_ref_if3_t3,
     ]));
-    let mut q4 = Node::new_node(Stmt::Block(vec![
+    let q4 = Node::new_node(Stmt::Block(vec![
         s_ref_else3_t1,
         s_ref_else3_t2,
         s_ref_else3_t3,
     ]));
-    let mut branch3 = branch_node! {
+    let branch3 = branch_node! {
         if (|ijk| ijk[0] < ijk[1] - 1) {
             //[s_ref_if3_t1, s_ref_if3_t2, s_ref_if3_s1, s_ref_if3_s2, s_ref_if3_t3]
             q3
@@ -967,7 +967,7 @@ pub fn nussinov(n: usize) -> Rc<Node> {
     };
 
     let mut branch4 = branch_node! {
-        if (move |ijk| ijk[1] - 1 >= 0 && ijk[0] + 1 < ubound) {
+        if (move |ijk| ijk[1] > 0 && ijk[0] + 1 < ubound) {
             branch3
         }
     };
