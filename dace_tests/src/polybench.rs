@@ -1,6 +1,7 @@
 #![allow(dead_code, non_snake_case)]
 use dace::ast::Node;
 use dace::ast::Stmt;
+use dace::branch_node;
 use dace::loop_node;
 use std::rc::Rc;
 
@@ -596,6 +597,623 @@ pub fn convolution_2d(ni: usize, nj: usize) -> Rc<Node> {
     Node::new_node(Stmt::Block(vec![i_ni_loop_ref]))
 }
 
+pub fn symm(n: usize, m: usize) -> Rc<Node> {
+    // n : usize is size of array
+    let ubound1 = n as i32;
+    let ubound2 = m as i32;
+
+    // creating c[k][j] += alpha * b[i][j] * a[i][k]
+    let mut s_ref_b1: Rc<Node> = Node::new_ref("b1", vec![m, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_a1 = Node::new_ref("a1", vec![m, m], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_c1 = Node::new_ref("c1", vec![m, n], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_c2 = Node::new_ref("c2", vec![m, n], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+
+    // creating tempt2 += b[k][j] * a[i][k]
+    let mut s_ref_b2 = Node::new_ref("b2", vec![m, n], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_a2 = Node::new_ref("a2", vec![m, m], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+
+    // creating c[i][j] = beta * c[i][j] + alpha* b[i][j] * a[i][i] + alpha * temp2
+    let mut s_ref_c3 = Node::new_ref("c3", vec![m, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_b3 = Node::new_ref("b3", vec![m, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_a3 = Node::new_ref("a3", vec![m, m], |ijk| {
+        vec![ijk[0] as usize, ijk[0] as usize]
+    });
+    let mut s_ref_c4 = Node::new_ref("c4", vec![m, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating loops
+    let mut k_loop_ref = loop_node!("k", 0 => move |i : &[i32]| i[0]);
+    Node::extend_loop_body(&mut k_loop_ref, &mut s_ref_b1);
+    Node::extend_loop_body(&mut k_loop_ref, &mut s_ref_a1);
+    Node::extend_loop_body(&mut k_loop_ref, &mut s_ref_c1);
+    Node::extend_loop_body(&mut k_loop_ref, &mut s_ref_c2);
+    Node::extend_loop_body(&mut k_loop_ref, &mut s_ref_b2);
+    Node::extend_loop_body(&mut k_loop_ref, &mut s_ref_a2);
+
+    let mut j_loop_ref = Node::new_single_loop("j", 0, ubound1);
+    Node::extend_loop_body(&mut j_loop_ref, &mut k_loop_ref);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_c3);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_b3);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a3);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_c4);
+
+    let mut i_loop_ref = Node::new_single_loop("i", 0, ubound2);
+    Node::extend_loop_body(&mut i_loop_ref, &mut j_loop_ref);
+
+    i_loop_ref
+}
+
+pub fn stencil(n: usize) -> Rc<Node> {
+    // n : usize is size of array
+    let ubound = n as i32;
+
+    // creating b[i][j] =  a[i][j] + a[i][j] + a[i][j] + a[i][j] + a[i][j]
+    let mut s_ref_a1: Rc<Node> =
+        Node::new_ref("a1", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_a2 = Node::new_ref("a2", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_a3 = Node::new_ref("a3", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_a4 = Node::new_ref("a4", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_a5 = Node::new_ref("a5", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_b = Node::new_ref("b", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+
+    // creating loops
+    let mut j_loop_ref = Node::new_single_loop("j", 0, ubound + 1);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a1);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a2);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a3);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a4);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a5);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_b);
+
+    let mut i_loop_ref = Node::new_single_loop("i", 0, ubound + 1);
+    Node::extend_loop_body(&mut i_loop_ref, &mut j_loop_ref);
+
+    i_loop_ref
+}
+
+pub fn seidel_2d(m: usize, n: usize) -> Rc<Node> {
+    let ubound = n as i32;
+    let tsteps = m as i32;
+
+    // creating A[i][j] = A[i][j] + A[i][j] + A[i][j] + A[i][j] + A[i][j] + A[i][j] + A[i][j] + A[i][j] + A[i][j]
+    let mut s_ref_a1: Rc<Node> = Node::new_ref("a1", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a2 = Node::new_ref("a2", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a3 = Node::new_ref("a3", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a4 = Node::new_ref("a4", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a5 = Node::new_ref("a5", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a6 = Node::new_ref("a6", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a7 = Node::new_ref("a7", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a8 = Node::new_ref("a8", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a9 = Node::new_ref("a9", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a0 = Node::new_ref("a0", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+
+    // creating loops
+    let mut j_loop_ref = Node::new_single_loop("j", 1, ubound - 2);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a1);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a2);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a3);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a4);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a5);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a6);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a7);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a8);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a9);
+    Node::extend_loop_body(&mut j_loop_ref, &mut s_ref_a0);
+
+    let mut i_loop_ref = Node::new_single_loop("i", 1, ubound - 2);
+    Node::extend_loop_body(&mut i_loop_ref, &mut j_loop_ref);
+
+    let mut t_loop_ref = Node::new_single_loop("t", 0, tsteps - 1);
+    Node::extend_loop_body(&mut t_loop_ref, &mut i_loop_ref);
+
+    t_loop_ref
+}
+
+pub fn ludcmp(n: usize) -> Rc<Node> {
+    // n : usize is size of array
+    let ubound = n as i32;
+
+    // creating w = A[i][j]
+    let mut s_ref_a1: Rc<Node> = Node::new_ref("a1", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating w -= A[i][k] * A[k][j]
+    let mut s_ref_a2 = Node::new_ref("a2", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a3 = Node::new_ref("a3", vec![n, n], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+
+    // creating A[i][j] = w / A[j][j]
+    let mut s_ref_a4 = Node::new_ref("a4", vec![n, n], |ijk| {
+        vec![ijk[1] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_a5 = Node::new_ref("a5", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating w = A[i][j]
+    let mut s_ref_a6 = Node::new_ref("a6", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating w -= A[i][k] * A[k][j]
+    let mut s_ref_a7 = Node::new_ref("a7", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_a8 = Node::new_ref("a8", vec![n, n], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+
+    // creating A[i][j] = w
+    let mut s_ref_a9 = Node::new_ref("a9", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating w = b[i]
+    let mut s_ref_b1 = Node::new_ref("b1", vec![n], |ijk| vec![ijk[0] as usize]);
+
+    // creating w -= A[i][j] * y[j]
+    let mut s_ref_a10 = Node::new_ref("a10", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_y1 = Node::new_ref("y1", vec![n], |ijk| vec![ijk[1] as usize]);
+
+    // creating y[i] = w
+    let mut s_ref_y2 = Node::new_ref("y2", vec![n], |ijk| vec![ijk[0] as usize]);
+
+    // creating w = y[i]
+    let mut s_ref_y3 = Node::new_ref("y3", vec![n], |ijk| vec![ijk[0] as usize]);
+
+    // creating w -= A[i][j] * x[j]
+    let mut s_ref_a11 = Node::new_ref("a11", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_x1 = Node::new_ref("x1", vec![n], |ijk| vec![ijk[1] as usize]);
+
+    // creating x[i] = w / A[i][i]
+    let mut s_ref_a12 = Node::new_ref("a12", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[0] as usize]
+    });
+    let mut s_ref_x2 = Node::new_ref("x2", vec![n], |ijk| vec![ijk[0] as usize]);
+
+    // creating loop
+    let mut k_loop_upper = loop_node!("k", 0 => move |j : &[i32]| j[0]);
+    Node::extend_loop_body(&mut k_loop_upper, &mut s_ref_a2);
+    Node::extend_loop_body(&mut k_loop_upper, &mut s_ref_a3);
+
+    let mut j_loop_upper = loop_node!("j", 0 => move |i : &[i32]| i[0]);
+    Node::extend_loop_body(&mut j_loop_upper, &mut s_ref_a1);
+    Node::extend_loop_body(&mut j_loop_upper, &mut k_loop_upper);
+    Node::extend_loop_body(&mut j_loop_upper, &mut s_ref_a4);
+    Node::extend_loop_body(&mut j_loop_upper, &mut s_ref_a5);
+
+    let mut k_loop_lower = loop_node!("k", 0 => move |i : &[i32]| i[0]);
+    Node::extend_loop_body(&mut k_loop_lower, &mut s_ref_a7);
+    Node::extend_loop_body(&mut k_loop_lower, &mut s_ref_a8);
+
+    let mut j_loop_lower = loop_node!("j", |i : &[i32]| i[0] => move |_: &_| ubound);
+    Node::extend_loop_body(&mut j_loop_lower, &mut s_ref_a6);
+    Node::extend_loop_body(&mut j_loop_lower, &mut k_loop_lower);
+    Node::extend_loop_body(&mut j_loop_lower, &mut s_ref_a9);
+
+    let mut i_loop_upper = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop_upper, &mut j_loop_upper);
+    Node::extend_loop_body(&mut i_loop_upper, &mut j_loop_lower);
+
+    let mut j_loop2 = loop_node!("j", 0 => move |i : &[i32]| i[0]);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_a10);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_y1);
+
+    let mut i_loop_middle = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop_middle, &mut s_ref_b1);
+    Node::extend_loop_body(&mut i_loop_middle, &mut j_loop2);
+    Node::extend_loop_body(&mut i_loop_middle, &mut s_ref_y2);
+
+    let mut j_loop3 = loop_node!("j", |i : &[i32]| i[0] + 1 => move |_: &_| ubound);
+    Node::extend_loop_body(&mut j_loop3, &mut s_ref_a11);
+    Node::extend_loop_body(&mut j_loop3, &mut s_ref_x1);
+
+    let mut i_loop_lower = loop_node!("i", ubound-1 => 0, step: |x| x - 1);
+    Node::extend_loop_body(&mut i_loop_lower, &mut s_ref_y3);
+    Node::extend_loop_body(&mut i_loop_lower, &mut j_loop3);
+    Node::extend_loop_body(&mut i_loop_lower, &mut s_ref_a12);
+    Node::extend_loop_body(&mut i_loop_lower, &mut s_ref_x2);
+
+    // combine three seperate loops
+    Node::new_node(Stmt::Block(vec![i_loop_upper, i_loop_middle, i_loop_lower]))
+}
+
+pub fn nussinov(n: usize) -> Rc<Node> {
+    // n : usize is size of array
+    let ubound = n as i32;
+
+    // creating table[i][j] = max_score(table[i][j], table[i][j-1])
+    let s_ref_if1_t1 = Node::new_ref("if1_t1", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let s_ref_if1_t2 = Node::new_ref("if1_t2", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize - 1]
+    });
+    let s_ref_if1_t3 = Node::new_ref("if1_t3", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating table[i][j] = max_score(table[i][j], table[i+1][j])
+    let s_ref_if2_t1 = Node::new_ref("if2_t1", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let s_ref_if2_t2 = Node::new_ref("if2_t2", vec![n, n], |ijk| {
+        vec![ijk[0] as usize + 1, ijk[1] as usize]
+    });
+    let s_ref_if2_t3 = Node::new_ref("if2_t3", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating table[i][j] = max_score(table[i][j], table[i+1][j-1]+match(seq[i], seq[j]))
+    let s_ref_if3_t1 = Node::new_ref("if3_t1", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let s_ref_if3_t2 = Node::new_ref("if3_t2", vec![n, n], |ijk| {
+        vec![ijk[0] as usize + 1, ijk[1] as usize - 1]
+    });
+    let s_ref_if3_s1 = Node::new_ref("if3_s1", vec![n], |ijk| vec![ijk[0] as usize]);
+    let s_ref_if3_s2 = Node::new_ref("if3_s2", vec![n], |ijk| vec![ijk[1] as usize]);
+    let s_ref_if3_t3 = Node::new_ref("if3_t3", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating table[i][j] = max_score(table[i][j], table[i+1][j-1])
+    let s_ref_else3_t1 = Node::new_ref("else3_t1", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let s_ref_else3_t2 = Node::new_ref("else3_t2", vec![n, n], |ijk| {
+        vec![ijk[0] as usize + 1, ijk[1] as usize - 1]
+    });
+    let s_ref_else3_t3 = Node::new_ref("else3_t3", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating table[i][j] = max_score(table[i][j], table[i][k] + table[k+1][j])
+    let mut s_ref_t1 = Node::new_ref("t1", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_t2 = Node::new_ref("t2", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_t3 = Node::new_ref("t3", vec![n, n], |ijk| {
+        vec![ijk[2] as usize + 1, ijk[1] as usize]
+    });
+    let mut s_ref_t4 = Node::new_ref("t4", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+
+    // creating if else branches
+    let q1 = Node::new_node(Stmt::Block(vec![s_ref_if1_t1, s_ref_if1_t2, s_ref_if1_t3]));
+    let mut branch1 = branch_node! {
+        if (|ijk| ijk[1] > 0) {
+            //[s_ref_if1_t1, s_ref_if1_t2, s_ref_if1_t3]
+            q1
+        }
+    };
+
+    let q2 = Node::new_node(Stmt::Block(vec![s_ref_if2_t1, s_ref_if2_t2, s_ref_if2_t3]));
+    let mut branch2 = branch_node! {
+        if (move |ijk| ijk[0] + 1 < ubound) {
+            //[s_ref_if2_t1, s_ref_if2_t2, s_ref_if2_t3]
+            q2
+        }
+    };
+
+    let q3 = Node::new_node(Stmt::Block(vec![
+        s_ref_if3_t1,
+        s_ref_if3_t2,
+        s_ref_if3_s1,
+        s_ref_if3_s2,
+        s_ref_if3_t3,
+    ]));
+    let q4 = Node::new_node(Stmt::Block(vec![
+        s_ref_else3_t1,
+        s_ref_else3_t2,
+        s_ref_else3_t3,
+    ]));
+    let branch3 = branch_node! {
+        if (|ijk| ijk[0] < ijk[1] - 1) {
+            //[s_ref_if3_t1, s_ref_if3_t2, s_ref_if3_s1, s_ref_if3_s2, s_ref_if3_t3]
+            q3
+        } else {
+            //[s_ref_else3_t1, s_ref_else3_t2, s_ref_else3_t3]
+            q4
+        }
+    };
+
+    let mut branch4 = branch_node! {
+        if (move |ijk| ijk[1] > 0 && ijk[0] + 1 < ubound) {
+            branch3
+        }
+    };
+
+    // creating loops
+    let mut k_loop = loop_node!("k", |i : &[i32]| i[0] + 1 => move |j : &[i32]| j[0]);
+    Node::extend_loop_body(&mut k_loop, &mut s_ref_t1);
+    Node::extend_loop_body(&mut k_loop, &mut s_ref_t2);
+    Node::extend_loop_body(&mut k_loop, &mut s_ref_t3);
+    Node::extend_loop_body(&mut k_loop, &mut s_ref_t4);
+
+    let mut j_loop = loop_node!("j", |i : &[i32]| i[0] + 1 => move |_: &_| ubound);
+    Node::extend_loop_body(&mut j_loop, &mut branch1);
+    Node::extend_loop_body(&mut j_loop, &mut branch2);
+    Node::extend_loop_body(&mut j_loop, &mut branch4);
+    Node::extend_loop_body(&mut j_loop, &mut k_loop);
+
+    let mut i_loop = loop_node!("i", ubound-1 => 0, step: |x| x - 1);
+    Node::extend_loop_body(&mut i_loop, &mut j_loop);
+
+    i_loop
+}
+
+pub fn jacobi_1d(m: usize, n: usize) -> Rc<Node> {
+    let ubound = n as i32;
+    let tsteps = m as i32;
+
+    // creating B[i] = 0.33333 * (A[i-1] + A[i] + A[i + 1]);
+    let mut s_ref_a1 = Node::new_ref("a1", vec![n], |ti| vec![ti[1] as usize - 1]);
+    let mut s_ref_a2 = Node::new_ref("a2", vec![n], |ti| vec![ti[1] as usize]);
+    let mut s_ref_a3 = Node::new_ref("a3", vec![n], |ti| vec![ti[1] as usize + 1]);
+    let mut s_ref_b1 = Node::new_ref("b1", vec![n], |ti| vec![ti[1] as usize]);
+
+    // creating A[i] = 0.33333 * (B[i-1] + B[i] + B[i + 1]);
+    let mut s_ref_b2 = Node::new_ref("b2", vec![n], |ti| vec![ti[1] as usize - 1]);
+    let mut s_ref_b3 = Node::new_ref("b3", vec![n], |ti| vec![ti[1] as usize]);
+    let mut s_ref_b4 = Node::new_ref("b4", vec![n], |ti| vec![ti[1] as usize + 1]);
+    let mut s_ref_a4 = Node::new_ref("a4", vec![n], |ti| vec![ti[1] as usize]);
+
+    // creating loops
+    let mut i_loop1 = Node::new_single_loop("i", 1, ubound - 1);
+    Node::extend_loop_body(&mut i_loop1, &mut s_ref_a1);
+    Node::extend_loop_body(&mut i_loop1, &mut s_ref_a2);
+    Node::extend_loop_body(&mut i_loop1, &mut s_ref_a3);
+    Node::extend_loop_body(&mut i_loop1, &mut s_ref_b1);
+
+    let mut i_loop2 = Node::new_single_loop("i", 1, ubound - 1);
+    Node::extend_loop_body(&mut i_loop2, &mut s_ref_b2);
+    Node::extend_loop_body(&mut i_loop2, &mut s_ref_b3);
+    Node::extend_loop_body(&mut i_loop2, &mut s_ref_b4);
+    Node::extend_loop_body(&mut i_loop2, &mut s_ref_a4);
+
+    let mut t_loop = Node::new_single_loop("t", 0, tsteps);
+    Node::extend_loop_body(&mut t_loop, &mut i_loop1);
+    Node::extend_loop_body(&mut t_loop, &mut i_loop2);
+
+    t_loop
+}
+
+pub fn jacobi_2d(m: usize, n: usize) -> Rc<Node> {
+    let ubound = n as i32;
+    let tsteps = m as i32;
+
+    // creating B[i][j] = 0.2 * (A[i][j] + A[i][j-1] + A[i][1+j] + A[(1+i)][j] + A[(i-1)][j]);
+    let mut s_ref_a1 = Node::new_ref("a1", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_a2 = Node::new_ref("a2", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize - 1]
+    });
+    let mut s_ref_a3 = Node::new_ref("a3", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize + 1]
+    });
+    let mut s_ref_a4 = Node::new_ref("a4", vec![n, n], |tij| {
+        vec![tij[1] as usize + 1, tij[2] as usize]
+    });
+    let mut s_ref_a5 = Node::new_ref("a5", vec![n, n], |tij| {
+        vec![tij[1] as usize - 1, tij[2] as usize]
+    });
+    let mut s_ref_b1 = Node::new_ref("b1", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+
+    // creating A[i][j] = 0.2 * (B[i][j] + B[i][j-1] + B[i][1+j] + B[(1+i)][j] + B[(i-1)][j]);
+    let mut s_ref_b2 = Node::new_ref("b2", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+    let mut s_ref_b3 = Node::new_ref("b3", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize - 1]
+    });
+    let mut s_ref_b4 = Node::new_ref("b4", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize + 1]
+    });
+    let mut s_ref_b5 = Node::new_ref("b5", vec![n, n], |tij| {
+        vec![tij[1] as usize + 1, tij[2] as usize]
+    });
+    let mut s_ref_b6 = Node::new_ref("b6", vec![n, n], |tij| {
+        vec![tij[1] as usize - 1, tij[2] as usize]
+    });
+    let mut s_ref_a6 = Node::new_ref("a6", vec![n, n], |tij| {
+        vec![tij[1] as usize, tij[2] as usize]
+    });
+
+    // creating loops
+    let mut j_loop1 = Node::new_single_loop("j", 1, ubound - 1);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_a1);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_a2);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_a3);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_a4);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_a5);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_b1);
+
+    let mut j_loop2 = Node::new_single_loop("j", 1, ubound - 1);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_b2);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_b3);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_b4);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_b5);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_b6);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_a6);
+
+    let mut i_loop1 = Node::new_single_loop("j", 1, ubound - 1);
+    Node::extend_loop_body(&mut i_loop1, &mut j_loop1);
+
+    let mut i_loop2 = Node::new_single_loop("j", 1, ubound - 1);
+    Node::extend_loop_body(&mut i_loop2, &mut j_loop2);
+
+    let mut t_loop = Node::new_single_loop("t", 0, tsteps);
+    Node::extend_loop_body(&mut t_loop, &mut i_loop1);
+    Node::extend_loop_body(&mut t_loop, &mut i_loop2);
+
+    t_loop
+}
+
+pub fn gesummv(n: usize) -> Rc<Node> {
+    // n : usize is size of array
+    let ubound = n as i32;
+
+    // creating tmp[i] = 0 and y[i] = 0;
+    let mut s_ref_tmp1 = Node::new_ref("tmp1", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_y1 = Node::new_ref("y1", vec![n], |ij| vec![ij[0] as usize]);
+
+    // creating tmp[i] = A[i][j] * x[j] + tmp[i];
+    // creating y[i] = B[i][j] * x[j] + y[i];
+    let mut s_ref_a = Node::new_ref("a", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_x1 = Node::new_ref("x1", vec![n], |ij| vec![ij[1] as usize]);
+    let mut s_ref_tmp2 = Node::new_ref("tmp2", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_tmp3 = Node::new_ref("tmp3", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_b = Node::new_ref("b", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_x2: Rc<Node> = Node::new_ref("x2", vec![n], |ij| vec![ij[1] as usize]);
+    let mut s_ref_y2 = Node::new_ref("y2", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_y3 = Node::new_ref("y3", vec![n], |ij| vec![ij[0] as usize]);
+
+    // creating y[i] = alpha * tmp[i] + beta * y[i];
+    let mut s_ref_tmp4 = Node::new_ref("tmp4", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_y4 = Node::new_ref("y4", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_y5 = Node::new_ref("y5", vec![n], |ij| vec![ij[0] as usize]);
+
+    // creating loops
+    let mut j_loop = Node::new_single_loop("j", 0, ubound);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_a);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_x1);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_tmp2);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_tmp3);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_b);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_x2);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_y2);
+    Node::extend_loop_body(&mut j_loop, &mut s_ref_y3);
+
+    let mut i_loop = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop, &mut s_ref_tmp1);
+    Node::extend_loop_body(&mut i_loop, &mut s_ref_y1);
+    Node::extend_loop_body(&mut i_loop, &mut j_loop);
+    Node::extend_loop_body(&mut i_loop, &mut s_ref_tmp4);
+    Node::extend_loop_body(&mut i_loop, &mut s_ref_y4);
+    Node::extend_loop_body(&mut i_loop, &mut s_ref_y5);
+
+    i_loop
+}
+
+pub fn gemver(n: usize) -> Rc<Node> {
+    // n : usize is size of array
+    let ubound = n as i32;
+
+    // creating A[i][j] = A[i][j] + u1[i] * v1[j] + u2[i] * v2[j]
+    let mut s_ref_a1 = Node::new_ref("a1", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_u1 = Node::new_ref("u1", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_v1 = Node::new_ref("v1", vec![n], |ij| vec![ij[1] as usize]);
+    let mut s_ref_u2 = Node::new_ref("u2", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_v2 = Node::new_ref("v2", vec![n, n], |ij| vec![ij[1] as usize]);
+    let mut s_ref_a2 = Node::new_ref("a2", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+
+    // creating x[i] = x[i] + beta * A[j][i] * y[j]
+    let mut s_ref_x1 = Node::new_ref("x1", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_a3 = Node::new_ref("a3", vec![n, n], |ij| vec![ij[1] as usize, ij[0] as usize]);
+    let mut s_ref_y = Node::new_ref("y", vec![n], |ij| vec![ij[1] as usize]);
+    let mut s_ref_x2 = Node::new_ref("x2", vec![n], |ij| vec![ij[0] as usize]);
+
+    // creating x[i] = x[i] + z[i]
+    let mut s_ref_x3 = Node::new_ref("x3", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_z = Node::new_ref("z", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_x4 = Node::new_ref("x4", vec![n], |ij| vec![ij[0] as usize]);
+
+    // creating w[i] = w[i] + alpha * A[i][j] * x[j]
+    let mut s_ref_w1 = Node::new_ref("w1", vec![n], |ij| vec![ij[0] as usize]);
+    let mut s_ref_a4 = Node::new_ref("a4", vec![n, n], |ij| vec![ij[0] as usize, ij[1] as usize]);
+    let mut s_ref_x5 = Node::new_ref("x5", vec![n], |ij| vec![ij[1] as usize]);
+    let mut s_ref_w2 = Node::new_ref("w2", vec![n, n], |ij| vec![ij[0] as usize]);
+
+    // creating loops
+    let mut j_loop1 = Node::new_single_loop("j", 0, ubound);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_a1);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_u1);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_v1);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_u2);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_v2);
+    Node::extend_loop_body(&mut j_loop1, &mut s_ref_a2);
+
+    let mut i_loop1 = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop1, &mut j_loop1);
+
+    let mut j_loop2 = Node::new_single_loop("j", 0, ubound);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_x1);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_a3);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_y);
+    Node::extend_loop_body(&mut j_loop2, &mut s_ref_x2);
+
+    let mut i_loop2 = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop2, &mut j_loop2);
+
+    let mut i_loop3 = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop3, &mut s_ref_x3);
+    Node::extend_loop_body(&mut i_loop3, &mut s_ref_z);
+    Node::extend_loop_body(&mut i_loop3, &mut s_ref_x4);
+
+    let mut j_loop4 = Node::new_single_loop("j", 0, ubound);
+    Node::extend_loop_body(&mut j_loop4, &mut s_ref_w1);
+    Node::extend_loop_body(&mut j_loop4, &mut s_ref_a4);
+    Node::extend_loop_body(&mut j_loop4, &mut s_ref_x5);
+    Node::extend_loop_body(&mut j_loop4, &mut s_ref_w2);
+
+    let mut i_loop4 = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop4, &mut j_loop4);
+
+    Node::new_node(Stmt::Block(vec![i_loop1, i_loop2, i_loop3, i_loop4]))
+}
+
 #[cfg(test)]
 mod tests {
     use static_rd::*;
@@ -682,5 +1300,50 @@ mod tests {
     fn heat_3d_test() {
         let mm = heat_3d(5, 100);
         assert_eq!(mm.node_count(), 29);
+    }
+
+    #[test]
+    fn test_symm() {
+        assert_eq!(symm(1024, 1024).node_count(), 13)
+    }
+
+    #[test]
+    fn test_stencil() {
+        assert_eq!(stencil(1024).node_count(), 8)
+    }
+
+    #[test]
+    fn test_seidel_2d() {
+        assert_eq!(seidel_2d(10, 1024).node_count(), 13)
+    }
+
+    #[test]
+    fn test_ludcmp() {
+        assert_eq!(ludcmp(1024).node_count(), 28)
+    }
+
+    #[test]
+    fn test_nussinov() {
+        assert_eq!(nussinov(1024).node_count(), 29)
+    }
+
+    #[test]
+    fn test_jacobi_1d() {
+        assert_eq!(jacobi_1d(10, 1024).node_count(), 11)
+    }
+
+    #[test]
+    fn test_jacobi_2d() {
+        assert_eq!(jacobi_2d(10, 1024).node_count(), 17)
+    }
+
+    #[test]
+    fn test_gesummv() {
+        assert_eq!(gesummv(1024).node_count(), 15)
+    }
+
+    #[test]
+    fn test_gemver() {
+        assert_eq!(gemver(1024).node_count(), 25)
     }
 }
