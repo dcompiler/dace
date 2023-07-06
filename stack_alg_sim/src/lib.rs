@@ -1,5 +1,7 @@
 #![feature(linked_list_remove)]
+#![feature(let_chains)]
 pub mod olken;
+pub mod scale_tree;
 pub mod stack;
 pub mod vec;
 

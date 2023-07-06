@@ -16,6 +16,14 @@ pub enum Stmt {
     /// A statement is a sequence of array references
     Ref(AryRef),
     Block(Vec<Rc<Node>>),
+    Branch(BranchStmt),
+}
+
+pub struct BranchStmt {
+    #[allow(clippy::type_complexity)]
+    pub cond: Box<dyn Fn(&[i32]) -> bool>,
+    pub then_body: Rc<Node>,
+    pub else_body: Option<Rc<Node>>,
 }
 
 pub struct LoopStmt {
@@ -37,6 +45,15 @@ impl Debug for LoopStmt {
             .field("lb", &self.lb)
             .field("ub", &self.ub)
             .field("body", &self.body)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Debug for BranchStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BranchStmt")
+            .field("then", &self.then_body)
+            .field("else", &self.else_body)
             .finish_non_exhaustive()
     }
 }
@@ -126,6 +143,24 @@ macro_rules! loop_node {
     };
     ($ivar:expr, $lb:expr => $ub:expr, test: $test:expr, step: $step:expr) => {
         $crate::ast::Node::new_single_loop_general($ivar, $lb.into(), $ub.into(), $test, $step)
+    };
+}
+
+#[macro_export]
+macro_rules! branch_node {
+    (if ($cond:expr) {$then:tt}) => {
+        $crate::ast::Node::new_node($crate::ast::Stmt::Branch($crate::ast::BranchStmt {
+            cond: Box::new($cond),
+            then_body: $then,
+            else_body: None,
+        }))
+    };
+    (if ($cond:expr) {$then:tt} else {$else:tt}) => {
+        $crate::ast::Node::new_node($crate::ast::Stmt::Branch($crate::ast::BranchStmt {
+            cond: Box::new($cond),
+            then_body: $then,
+            else_body: Some($else),
+        }))
     };
 }
 
@@ -309,6 +344,11 @@ impl Node {
                     .map(|x| x.as_ref().node_count())
                     .sum::<u32>()
             }
+            Stmt::Branch(stmt) => {
+                stmt.then_body.node_count()
+                    + stmt.else_body.as_ref().map(|x| x.node_count()).unwrap_or(0)
+                    + 1
+            }
         }
     }
 }
@@ -390,6 +430,49 @@ mod tests {
         Node::extend_loop_body(&mut i_loop, &mut j_loop);
 
         assert_eq!(i_loop.node_count(), 2);
+    }
+    #[test]
+    fn example_if_then() {
+        // for i in 0..n step by 2
+        let ubound = 100; // loop bound
+
+        let ref_a = Node::new_ref("A", vec![100], |i| vec![i[0] as usize]);
+
+        let mut branch = branch_node! {
+            if (|ivec| ivec[0] & 1 == 0) {
+                ref_a
+            }
+        };
+
+        // creating loop i = 0, n
+        let mut i_loop = loop_node!("i", 0 => ubound, step: |x| x + 2);
+        Node::extend_loop_body(&mut i_loop, &mut branch);
+
+        assert_eq!(i_loop.node_count(), 3);
+    }
+
+    #[test]
+    fn example_if_then_else() {
+        // for i in 0..n step by 2
+        let ubound = 100; // loop bound
+
+        let ref_a = Node::new_ref("A", vec![100], |i| vec![i[0] as usize]);
+
+        let ref_b = Node::new_ref("B", vec![100], |i| vec![i[0] as usize]);
+
+        let mut branch = branch_node! {
+            if (|ivec| ivec[0] & 1 == 0) {
+                ref_a
+            } else {
+                ref_b
+            }
+        };
+
+        // creating loop i = 0, n
+        let mut i_loop = loop_node!("i", 0 => ubound, step: |x| x + 2);
+        Node::extend_loop_body(&mut i_loop, &mut branch);
+
+        assert_eq!(i_loop.node_count(), 4);
     }
 
     #[test]

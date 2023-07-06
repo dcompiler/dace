@@ -45,6 +45,27 @@ impl Walk {
                             self.stack.push((children[visited].clone(), 0));
                         }
                     }
+                    Stmt::Branch(stmt) => {
+                        let stmt_len = 1 + stmt.else_body.is_some() as usize;
+                        match visited {
+                            _ if visited >= stmt_len => {
+                                self.stack.pop();
+                            }
+                            0 => {
+                                self.stack.last_mut().unwrap().1 += 1;
+                                self.stack.push((stmt.then_body.clone(), 0));
+                            }
+                            1 => {
+                                if let Some(else_body) = &stmt.else_body {
+                                    self.stack.last_mut().unwrap().1 += 1;
+                                    self.stack.push((else_body.clone(), 0));
+                                } else {
+                                    self.stack.pop();
+                                }
+                            }
+                            _ => unreachable!("visited > 1 in branch is not possible"),
+                        }
+                    }
                 }
                 result
             }

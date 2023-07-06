@@ -8,4 +8,8 @@ edition = "2021"
 [dependencies]
 dace = { path = "../dace" }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tracer = { path = "../tracer" }
+static_rd = { path = "../static_rd" }
+
+[dev-dependencies]
+list_serializable = { path = "../list_serializable" }
+
