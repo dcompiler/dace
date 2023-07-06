@@ -20,9 +20,9 @@ fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
     ary_ref.base.unwrap() + offset
 }
 
-fn trace_rec<T: LRU<usize>>(
+fn trace_rec_impl<T: LRU<usize>>(
     code: &Rc<Node>,
-    ivec: &[i32],
+    ivec: &mut Vec<i32>,
     sim: &mut T,
     hist: &mut Hist,
     data_accesses: &mut ListSerializable,
@@ -35,30 +35,32 @@ fn trace_rec<T: LRU<usize>>(
             hist.add_dist(rd);
         }
         Stmt::Loop(aloop) => {
-            if let LoopBound::Fixed(lb) = aloop.lb {
-                if let LoopBound::Fixed(ub) = aloop.ub {
-                    (lb..ub).for_each(|i| {
-                        aloop.body.iter().for_each(|stmt| {
-                            let mut myvec = ivec.to_owned();
-                            myvec.push(i);
-                            trace_rec(stmt, &myvec, sim, hist, data_accesses)
-                        })
-                    })
-                } else {
-                    panic!("dynamic loop upper bound is not supported")
+            let mut i = match &aloop.lb {
+                LoopBound::Fixed(lb) => *lb,
+                LoopBound::Dynamic(lb) => lb(ivec),
+            };
+            let ub = match &aloop.ub {
+                LoopBound::Fixed(ub) => *ub,
+                LoopBound::Dynamic(ub) => ub(ivec),
+            };
+
+            while (aloop.test)(i, ub) {
+                ivec.push(i);
+                for code in aloop.body.iter() {
+                    trace_rec_impl(code, ivec, sim, hist, data_accesses);
                 }
-            } else {
-                panic!("dynamic loop lower bound is not supported")
+                ivec.pop();
+                i = (aloop.step)(i);
             }
         }
         Stmt::Block(blk) => blk
             .iter()
-            .for_each(|s| trace_rec(s, ivec.clone(), sim, hist, data_accesses)),
+            .for_each(|s| trace_rec_impl(s, ivec, sim, hist, data_accesses)),
         Stmt::Branch(stmt) => {
             if (stmt.cond)(ivec) {
-                trace_rec(&stmt.then_body, ivec.clone(), sim, hist, data_accesses)
+                trace_rec_impl(&stmt.then_body, ivec, sim, hist, data_accesses)
             } else if let Some(else_body) = &stmt.else_body {
-                trace_rec(else_body, ivec.clone(), sim, hist, data_accesses)
+                trace_rec_impl(else_body, ivec, sim, hist, data_accesses)
             }
         }
     }
@@ -72,9 +74,9 @@ pub fn trace<T: LRU<usize>>(
     let mut hist = Hist::new();
     set_arybase(code);
     println!("{:?}", code);
-    trace_rec(
+    trace_rec_impl(
         code,
-        &Vec::<i32>::new(),
+        &mut Vec::<i32>::new(),
         &mut analyzer,
         &mut hist,
         accesses_count,
