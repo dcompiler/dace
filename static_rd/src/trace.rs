@@ -51,7 +51,7 @@ fn trace_rec_impl<T: LRU<usize>>(
                 }
                 ivec.pop();
                 i = (aloop.step)(i);
-            } 
+            }
         }
         Stmt::Block(blk) => blk
             .iter()
