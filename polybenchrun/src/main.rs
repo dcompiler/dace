@@ -30,7 +30,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let argdata = &args[5];
     let skip = &args[6]; //typically should be no
                          // let data_collection = &args[7]; //choose both
-
+    println!("{}", lru_mode);
+    println!("{}", t_mode);
+    println!("{}", creator);
+    println!("{}", hash_code);
+    println!("{}", argdata);
+    println!("{}", skip);
     let mut conn = aws_utilities::rds::connect_to_db();
 
     if skip != "yes"
