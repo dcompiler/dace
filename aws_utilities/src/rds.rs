@@ -21,10 +21,8 @@ pub fn connect_to_db() -> mysql::PooledConn {
         username, password, endpoint, port, name
     );
 
-    let opts = Opts::from_url(&url)
-        .expect("Failed to parse MySQL URL");
+    let opts = Opts::from_url(&url).expect("Failed to parse MySQL URL");
 
-    
     let mysql_pool = mysql::Pool::new(opts).expect("Failed to create a MySQL Pool");
 
     mysql_pool
@@ -80,14 +78,10 @@ pub fn save_entry(
             time_elapsed, 
             trace_csv_link,
             hist_rd_csv_link,
-            hist_ri_csv_link,
             dist_rd_csv_link,
-            dist_ri_csv_link,
             serialized_trace_link,
             serialized_hist_rd_link,
-            serialized_hist_ri_link,
             serialized_dist_rd_link,
-            serialized_dist_ri_link,
             loop_code_hash,
             created_by
         ) 
@@ -99,14 +93,10 @@ pub fn save_entry(
             :time_elapsed,
             :trace_csv_link,
             :hist_rd_csv_link,
-            :hist_ri_csv_link,
             :dist_rd_csv_link,
-            :dist_ri_csv_link,
             :serialized_trace_link,
             :serialized_hist_rd_link,
-            :serialized_hist_ri_link,
             :serialized_dist_rd_link,
-            :serialized_dist_ri_link,
             :loop_code_hash,
             :created_by
         )",
@@ -117,17 +107,21 @@ pub fn save_entry(
             "time_elapsed" => params.3,
             "trace_csv_link" => params.4,
             "hist_rd_csv_link" => params.5,
-            "hist_ri_csv_link" => params.6,
+            // "hist_ri_csv_link" => params.6,
             "dist_rd_csv_link" => params.7,
-            "dist_ri_csv_link" => params.8,
+            // "dist_ri_csv_link" => params.8,
             "serialized_trace_link" => params.9,
             "serialized_hist_rd_link" => params.10,
-            "serialized_hist_ri_link" => params.11,
+            // "serialized_hist_ri_link" => params.11,
             "serialized_dist_rd_link" => params.12,
-            "serialized_dist_ri_link" => params.13,
+            // "serialized_dist_ri_link" => params.13,
             "loop_code_hash" => params.14,
             "created_by" => params.15
         },
     )?;
     Ok(())
+    // serialized_hist_ri_link,
+    //            serialized_dist_ri_link,
+    //            dist_ri_csv_link,
+    //            hist_ri_csv_link,
 }

@@ -48,7 +48,7 @@ pub fn lu(n: usize) -> Rc<Node> {
     i_loop_ref
 }
 
-fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
+pub fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
     let mut i_loop_ref = Node::new_single_loop("i", 0, M as i32);
     let mut j_loop_ref = Node::new_single_loop("j", 0, N as i32);
     let mut k_loop_ref =
@@ -283,7 +283,79 @@ pub fn gemm(n: usize) -> Rc<Node> {
     i_loop_ref
 }
 
-fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
+pub fn _3mm(NI: usize, NJ: usize, NK: usize, NL: usize, NM: usize) -> Rc<Node> {
+    let mut s_ref_e = Node::new_ref("e", vec![NI, NJ], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_a = Node::new_ref("a", vec![NI, NK], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_b = Node::new_ref("b", vec![NK, NJ], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_f = Node::new_ref("f", vec![NJ, NL], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_c = Node::new_ref("c", vec![NJ, NM], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_d = Node::new_ref("d", vec![NM, NL], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_g = Node::new_ref("g", vec![NI, NL], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut s_ref_e_2 = Node::new_ref("e", vec![NI, NJ], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut s_ref_f_2 = Node::new_ref("f", vec![NJ, NL], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+
+    let mut knk_loop_ref = Node::new_single_loop("k", 0, NK as i32);
+    Node::extend_loop_body(&mut knk_loop_ref, &mut s_ref_a);
+    Node::extend_loop_body(&mut knk_loop_ref, &mut s_ref_b);
+    Node::extend_loop_body(&mut knk_loop_ref, &mut s_ref_e);
+
+    let mut jnj_loop_ref1 = Node::new_single_loop("j", 0, NJ as i32);
+    Node::extend_loop_body(&mut jnj_loop_ref1, &mut s_ref_e);
+    Node::extend_loop_body(&mut jnj_loop_ref1, &mut knk_loop_ref);
+
+    let mut ini_loop_ref1 = Node::new_single_loop("i", 0, NI as i32);
+    Node::extend_loop_body(&mut ini_loop_ref1, &mut jnj_loop_ref1);
+
+    let mut knm_loop_ref = Node::new_single_loop("k", 0, NM as i32);
+    Node::extend_loop_body(&mut knm_loop_ref, &mut s_ref_c);
+    Node::extend_loop_body(&mut knm_loop_ref, &mut s_ref_d);
+    Node::extend_loop_body(&mut knm_loop_ref, &mut s_ref_f);
+
+    let mut jnl_loop_ref = Node::new_single_loop("j", 0, NL as i32);
+    Node::extend_loop_body(&mut jnl_loop_ref, &mut s_ref_f);
+    Node::extend_loop_body(&mut jnl_loop_ref, &mut knm_loop_ref);
+
+    let mut inj_loop_ref = Node::new_single_loop("i", 0, NJ as i32);
+    Node::extend_loop_body(&mut inj_loop_ref, &mut jnl_loop_ref);
+
+    let mut knj_loop_ref = Node::new_single_loop("k", 0, NJ as i32);
+    Node::extend_loop_body(&mut knj_loop_ref, &mut s_ref_e_2);
+    Node::extend_loop_body(&mut knj_loop_ref, &mut s_ref_f_2);
+    Node::extend_loop_body(&mut knj_loop_ref, &mut s_ref_g);
+
+    let mut jnl_loop_ref2 = Node::new_single_loop("j", 0, NL as i32);
+    Node::extend_loop_body(&mut jnl_loop_ref2, &mut s_ref_g);
+    Node::extend_loop_body(&mut jnl_loop_ref2, &mut knj_loop_ref);
+
+    let mut ini_loop_ref2 = Node::new_single_loop("i", 0, NI as i32);
+    Node::extend_loop_body(&mut ini_loop_ref2, &mut jnl_loop_ref2);
+
+    Node::new_node(Stmt::Block(vec![
+        ini_loop_ref1,
+        inj_loop_ref,
+        ini_loop_ref2,
+    ]))
+}
+
+pub fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
     let mut s_ref_tmp = Node::new_ref("tmp", vec![NI, NJ], |ijk| {
         vec![ijk[0] as usize, ijk[1] as usize]
     });
@@ -1250,14 +1322,8 @@ mod tests {
         use std::time::Instant;
         let mut trace = gemm(128);
         let start = Instant::now();
-<<<<<<< HEAD
-        // let hist = tracer::trace::trace(&mut trace);
-        let hist = tracer::trace::trace(&mut trace, "Olken", "both");
-=======
         // let hist = static_rd::trace::trace(&mut trace);
-        let hist =
-            static_rd::trace::trace(&mut trace, LRUSplay::new(), &mut ListSerializable::new());
->>>>>>> upstream/main
+        let hist = static_rd::trace::trace(&mut trace, LRUSplay::new());
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
         println!("hist: {}", hist);
