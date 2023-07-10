@@ -3,6 +3,7 @@ use dace::ast::{AryRef, LoopBound, Node, Stmt};
 use hist::Hist;
 use list_serializable::ListSerializable;
 use stack_alg_sim::olken::LRUSplay;
+use stack_alg_sim::scale_tree::LRUSplay as LRUScaleTree;
 use stack_alg_sim::stack::LRUStack;
 use stack_alg_sim::vec::LRUVec;
 use stack_alg_sim::LRU;
@@ -83,11 +84,16 @@ pub fn trace(
     let mut dist_rd: ListSerializable<(usize, Option<usize>)> =
         ListSerializable::<(usize, Option<usize>)>::new();
     let mut hist = Hist::new();
+    let split: Vec<&str> = lru_type.split(',').collect();
 
-    let mut analyzer: Box<dyn LRU<usize>> = match lru_type {
+
+    let mut analyzer: Box<dyn LRU<usize>> = match split[0] {
         "Olken" => Box::new(LRUSplay::<usize>::new()),
         "Stack" => Box::new(LRUStack::<usize>::new()),
         "Vec" => Box::new(LRUVec::<usize>::new()),
+        "Scale" => {
+            Box::new(LRUScaleTree::<usize>::new(split[1].parse::<f64>().unwrap(), split[2].parse::<usize>().unwrap()))
+        },
         _ => Box::new(LRUSplay::<usize>::new()),
     };
 
@@ -128,7 +134,7 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let result = trace(&mut aloop, LRUStack::new());
+        let result = trace(&mut aloop, "Stack");
         let hist = result.0;
         assert_eq!(hist.to_vec()[0], (None, 10));
         println!("{}", hist);
@@ -141,7 +147,7 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let result = trace(&mut aloop, LRUStack::new());
+        let result = trace(&mut aloop, "Stack");
         let hist = result.0;
         assert_eq!(hist.to_vec()[0], (Some(1), 9));
         assert_eq!(hist.to_vec()[1], (None, 1));

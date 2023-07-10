@@ -1318,12 +1318,12 @@ mod tests {
 
     #[test]
     fn test_gemm_rd_olken() {
-        use list_serializable::ListSerializable;
         use std::time::Instant;
         let mut trace = gemm(128);
         let start = Instant::now();
         // let hist = static_rd::trace::trace(&mut trace);
-        let hist = static_rd::trace::trace(&mut trace, LRUSplay::new());
+        let result = static_rd::trace::trace(&mut trace, "Olken");
+        let hist = result.0;
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
         println!("hist: {}", hist);
@@ -1331,16 +1331,14 @@ mod tests {
 
     #[test]
     fn test_gemm_rd_scale_tree() {
-        use list_serializable::ListSerializable;
         use std::time::Instant;
         let mut trace = gemm(128);
         let start = Instant::now();
         // let hist = static_rd::trace::trace(&mut trace);
         let hist = static_rd::trace::trace(
             &mut trace,
-            LRUScaleTree::new(0.1, 10000),
-            &mut ListSerializable::new(),
-        );
+            "Scale,0.1,10000"
+        ).0;
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
         println!("hist: {}", hist);

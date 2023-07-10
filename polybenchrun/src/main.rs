@@ -3,8 +3,10 @@ use dace_tests::polybench::{
     _2mm, _3mm, cholesky, gemm, gramschmidt_trace, lu, mvt, syr2d, syrk, trisolv, trmm_trace,
 };
 use static_rd::trace::trace;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::{env, time::Duration, time::Instant};
+use hist::Hist;
 
 fn duration_to_string(duration: Duration) -> String {
     let total_seconds = duration.as_secs();
@@ -29,13 +31,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hash_code = &args[4]; //1.0 for now
     let argdata = &args[5];
     let skip = &args[6]; //typically should be no
-                         // let data_collection = &args[7]; //choose both
-    println!("{}", lru_mode);
-    println!("{}", t_mode);
-    println!("{}", creator);
-    println!("{}", hash_code);
-    println!("{}", argdata);
-    println!("{}", skip);
+    let data_collection = &args[7]; //choose both
+    // println!("{}", lru_mode);
+    // println!("{}", t_mode);
+    // println!("{}", creator);
+    // println!("{}", hash_code);
+    // println!("{}", argdata);
+    // println!("{}", skip);
     let mut conn = aws_utilities::rds::connect_to_db();
 
     if skip != "yes"
@@ -46,6 +48,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let split: Vec<&str> = argdata.split(',').collect();
+
+    println!("here");
 
     let mut loop_code = match t_mode.as_str() {
         "lu" => lu(split[0].parse::<usize>().unwrap()),
@@ -86,13 +90,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => matmul(split[0].parse::<usize>().unwrap()),
     };
 
+    // println!("here");
+
     let start = Instant::now();
 
     let result = trace(&mut loop_code, lru_mode);
 
     let time_elapsed = start.elapsed();
 
-    let serialized_hist_rd_data = Arc::new(serde_json::to_string(&result.0)?);
+
+    let hist_vec = result.0.to_vec();
+
+    let serialized_hist_rd_data = Arc::new(serde_json::to_string(
+        &hist_vec.into_iter().map(|(k, v)| {
+            (
+                match k {
+                    Some(key) => key.to_string(),
+                    None => String::from("None"),
+                },
+                v,
+            )
+        })
+        .collect::<HashMap<String, usize>>(),
+    )
+    .expect("Failed to serialize"));
+
+        // println!("here");
+
     // let serialized_hist_ri_data = Arc::new(serde_json::to_string(&result.1)?);
     let serialized_dist_rd_data = Arc::new(serde_json::to_string(&result.1)?);
     // let serialized_dist_ri_data = Arc::new(serde_json::to_string(&result.3)?);
