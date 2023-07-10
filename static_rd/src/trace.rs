@@ -2,6 +2,7 @@ use dace::arybase::set_arybase;
 use dace::ast::{AryRef, LoopBound, Node, Stmt};
 use hist::Hist;
 use list_serializable::ListSerializable;
+
 use stack_alg_sim::LRU;
 
 use std::rc::Rc;
@@ -25,13 +26,15 @@ fn trace_rec_impl<T: LRU<usize>>(
     ivec: &mut Vec<i32>,
     sim: &mut T,
     hist: &mut Hist,
-    data_accesses: &mut ListSerializable,
+    data_accesses: &mut ListSerializable<usize>,
+    dist_rd: &mut ListSerializable<(usize, Option<usize>)>,
 ) {
     match &code.stmt {
         Stmt::Ref(ary_ref) => {
             let addr = access2addr(ary_ref, ivec);
             data_accesses.add(addr);
             let rd = sim.rec_access(addr);
+            dist_rd.add((addr, rd));
             hist.add_dist(rd);
         }
         Stmt::Loop(aloop) => {
@@ -47,7 +50,7 @@ fn trace_rec_impl<T: LRU<usize>>(
             while (aloop.test)(i, ub) {
                 ivec.push(i);
                 for code in aloop.body.iter() {
-                    trace_rec_impl(code, ivec, sim, hist, data_accesses);
+                    trace_rec_impl(code, ivec, sim, hist, data_accesses, dist_rd);
                 }
                 ivec.pop();
                 i = (aloop.step)(i);
@@ -55,22 +58,29 @@ fn trace_rec_impl<T: LRU<usize>>(
         }
         Stmt::Block(blk) => blk
             .iter()
-            .for_each(|s| trace_rec_impl(s, ivec, sim, hist, data_accesses)),
+            .for_each(|s| trace_rec_impl(s, ivec, sim, hist, data_accesses, dist_rd)),
         Stmt::Branch(stmt) => {
             if (stmt.cond)(ivec) {
-                trace_rec_impl(&stmt.then_body, ivec, sim, hist, data_accesses)
+                trace_rec_impl(&stmt.then_body, ivec, sim, hist, data_accesses, dist_rd)
             } else if let Some(else_body) = &stmt.else_body {
-                trace_rec_impl(else_body, ivec, sim, hist, data_accesses)
+                trace_rec_impl(else_body, ivec, sim, hist, data_accesses, dist_rd)
             }
         }
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn trace<T: LRU<usize>>(
     code: &mut Rc<Node>,
     mut analyzer: T,
-    accesses_count: &mut ListSerializable,
-) -> Hist {
+) -> (
+    Hist,
+    ListSerializable<(usize, Option<usize>)>,
+    ListSerializable<usize>,
+) {
+    let mut accesses_count: ListSerializable<usize> = ListSerializable::<usize>::new();
+    let mut dist_rd: ListSerializable<(usize, Option<usize>)> =
+        ListSerializable::<(usize, Option<usize>)>::new();
     let mut hist = Hist::new();
     set_arybase(code);
     println!("{:?}", code);
@@ -79,9 +89,10 @@ pub fn trace<T: LRU<usize>>(
         &mut Vec::<i32>::new(),
         &mut analyzer,
         &mut hist,
-        accesses_count,
+        &mut accesses_count,
+        &mut dist_rd,
     );
-    hist
+    (hist, dist_rd, accesses_count)
 }
 
 #[cfg(test)]
@@ -108,7 +119,8 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let hist = trace(&mut aloop, LRUStack::new(), &mut ListSerializable::new());
+        let result = trace(&mut aloop, LRUStack::new());
+        let hist = result.0;
         assert_eq!(hist.to_vec()[0], (None, 10));
         println!("{}", hist);
     }
@@ -120,7 +132,8 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let hist = trace(&mut aloop, LRUStack::new(), &mut ListSerializable::new());
+        let result = trace(&mut aloop, LRUStack::new());
+        let hist = result.0;
         assert_eq!(hist.to_vec()[0], (Some(1), 9));
         assert_eq!(hist.to_vec()[1], (None, 1));
         println!("{}", hist);

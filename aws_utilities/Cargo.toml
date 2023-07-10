@@ -1,0 +1,17 @@
+[package]
+name = "aws_utilities"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+csv = "1.2.1"
+hist = { path = "../hist" }
+rusoto_core = "0.47.0"
+rusoto_s3 = "0.47.0"
+tokio = { version = "1", features = ["full"] }
+list_serializable = { path = "../list_serializable"}
+mysql = "24.0.0"
+anyhow = "1.0.40"
+urlencoding = "2.1.2"
