@@ -2,8 +2,9 @@ use dace_tests::matmul;
 use dace_tests::polybench::{
     _2mm, _3mm, cholesky, gemm, gramschmidt_trace, lu, mvt, syr2d, syrk, trisolv, trmm_trace,
 };
-use hist::Hist;
+
 use static_rd::trace::trace;
+use static_rd::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::{env, time::Duration, time::Instant};
@@ -31,13 +32,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hash_code = &args[4]; //1.0 for now
     let argdata = &args[5];
     let skip = &args[6]; //typically should be no
-    let data_collection = &args[7]; //choose both
-                                    // println!("{}", lru_mode);
-                                    // println!("{}", t_mode);
-                                    // println!("{}", creator);
-                                    // println!("{}", hash_code);
-                                    // println!("{}", argdata);
-                                    // println!("{}", skip);
+    let _data_collection = &args[7]; //choose both
+                                     // println!("{}", lru_mode);
+                                     // println!("{}", t_mode);
+                                     // println!("{}", creator);
+                                     // println!("{}", hash_code);
+                                     // println!("{}", argdata);
+                                     // println!("{}", skip);
     let mut conn = aws_utilities::rds::connect_to_db();
 
     if skip != "yes"
@@ -93,8 +94,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // println!("here");
 
     let start = Instant::now();
-
-    let result = trace(&mut loop_code, lru_mode);
+    let split: Vec<&str> = lru_mode.split(',').collect();
+    let result = match split[0] {
+        "Olken" => trace(&mut loop_code, LRUSplay::<usize>::new()),
+        "Stack" => trace(&mut loop_code, LRUStack::<usize>::new()),
+        "Vec" => trace(&mut loop_code, LRUVec::<usize>::new()),
+        "Scale" => trace(
+            &mut loop_code,
+            LRUScaleTree::<usize>::new(
+                split[1].parse::<f64>().unwrap(),
+                split[2].parse::<usize>().unwrap(),
+            ),
+        ),
+        _ => trace(&mut loop_code, LRUSplay::<usize>::new()),
+    };
 
     let time_elapsed = start.elapsed();
 

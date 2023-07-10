@@ -1288,7 +1288,6 @@ pub fn gemver(n: usize) -> Rc<Node> {
 
 #[cfg(test)]
 mod tests {
-    use static_rd::*;
 
     use super::*;
     #[test]
@@ -1322,7 +1321,7 @@ mod tests {
         let mut trace = gemm(128);
         let start = Instant::now();
         // let hist = static_rd::trace::trace(&mut trace);
-        let result = static_rd::trace::trace(&mut trace, "Olken");
+        let result = static_rd::trace::trace(&mut trace, static_rd::LRUSplay::new());
         let hist = result.0;
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
@@ -1335,7 +1334,7 @@ mod tests {
         let mut trace = gemm(128);
         let start = Instant::now();
         // let hist = static_rd::trace::trace(&mut trace);
-        let hist = static_rd::trace::trace(&mut trace, "Scale,0.1,10000").0;
+        let hist = static_rd::trace::trace(&mut trace, static_rd::LRUScaleTree::new(0.1, 10000)).0;
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
         println!("hist: {}", hist);

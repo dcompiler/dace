@@ -2,10 +2,7 @@ use dace::arybase::set_arybase;
 use dace::ast::{AryRef, LoopBound, Node, Stmt};
 use hist::Hist;
 use list_serializable::ListSerializable;
-use stack_alg_sim::olken::LRUSplay;
-use stack_alg_sim::scale_tree::LRUSplay as LRUScaleTree;
-use stack_alg_sim::stack::LRUStack;
-use stack_alg_sim::vec::LRUVec;
+
 use stack_alg_sim::LRU;
 
 use std::rc::Rc;
@@ -24,10 +21,10 @@ fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
     ary_ref.base.unwrap() + offset
 }
 
-fn trace_rec_impl(
+fn trace_rec_impl<T: LRU<usize>>(
     code: &Rc<Node>,
     ivec: &mut Vec<i32>,
-    sim: &mut Box<dyn LRU<usize>>,
+    sim: &mut T,
     hist: &mut Hist,
     data_accesses: &mut ListSerializable<usize>,
     dist_rd: &mut ListSerializable<(usize, Option<usize>)>,
@@ -72,9 +69,10 @@ fn trace_rec_impl(
     }
 }
 
-pub fn trace(
+#[allow(clippy::type_complexity)]
+pub fn trace<T: LRU<usize>>(
     code: &mut Rc<Node>,
-    lru_type: &str,
+    mut analyzer: T,
 ) -> (
     Hist,
     ListSerializable<(usize, Option<usize>)>,
@@ -84,19 +82,6 @@ pub fn trace(
     let mut dist_rd: ListSerializable<(usize, Option<usize>)> =
         ListSerializable::<(usize, Option<usize>)>::new();
     let mut hist = Hist::new();
-    let split: Vec<&str> = lru_type.split(',').collect();
-
-    let mut analyzer: Box<dyn LRU<usize>> = match split[0] {
-        "Olken" => Box::new(LRUSplay::<usize>::new()),
-        "Stack" => Box::new(LRUStack::<usize>::new()),
-        "Vec" => Box::new(LRUVec::<usize>::new()),
-        "Scale" => Box::new(LRUScaleTree::<usize>::new(
-            split[1].parse::<f64>().unwrap(),
-            split[2].parse::<usize>().unwrap(),
-        )),
-        _ => Box::new(LRUSplay::<usize>::new()),
-    };
-
     set_arybase(code);
     println!("{:?}", code);
     trace_rec_impl(
@@ -134,7 +119,7 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let result = trace(&mut aloop, "Stack");
+        let result = trace(&mut aloop, LRUStack::new());
         let hist = result.0;
         assert_eq!(hist.to_vec()[0], (None, 10));
         println!("{}", hist);
@@ -147,7 +132,7 @@ mod test {
         let mut aloop = Node::new_single_loop("i", 0, 10);
         Node::extend_loop_body(&mut aloop, &mut aref);
 
-        let result = trace(&mut aloop, "Stack");
+        let result = trace(&mut aloop, LRUStack::new());
         let hist = result.0;
         assert_eq!(hist.to_vec()[0], (Some(1), 9));
         assert_eq!(hist.to_vec()[1], (None, 1));

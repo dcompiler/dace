@@ -1,6 +1,5 @@
-use mysql::{self, params, prelude::Queryable, Opts, OptsBuilder};
+use mysql::{self, params, prelude::Queryable, Opts};
 use std::env;
-use urlencoding::encode;
 
 pub fn connect_to_db() -> mysql::PooledConn {
     let username = env::var("db_username").expect("db_username must be set");
@@ -48,6 +47,7 @@ pub async fn entry_exists(
     Ok(result.is_some())
 }
 
+#[allow(clippy::type_complexity)]
 pub fn save_entry(
     conn: &mut mysql::PooledConn,
     params: (
