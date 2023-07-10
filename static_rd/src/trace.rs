@@ -86,14 +86,14 @@ pub fn trace(
     let mut hist = Hist::new();
     let split: Vec<&str> = lru_type.split(',').collect();
 
-
     let mut analyzer: Box<dyn LRU<usize>> = match split[0] {
         "Olken" => Box::new(LRUSplay::<usize>::new()),
         "Stack" => Box::new(LRUStack::<usize>::new()),
         "Vec" => Box::new(LRUVec::<usize>::new()),
-        "Scale" => {
-            Box::new(LRUScaleTree::<usize>::new(split[1].parse::<f64>().unwrap(), split[2].parse::<usize>().unwrap()))
-        },
+        "Scale" => Box::new(LRUScaleTree::<usize>::new(
+            split[1].parse::<f64>().unwrap(),
+            split[2].parse::<usize>().unwrap(),
+        )),
         _ => Box::new(LRUSplay::<usize>::new()),
     };
 

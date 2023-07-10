@@ -1335,10 +1335,7 @@ mod tests {
         let mut trace = gemm(128);
         let start = Instant::now();
         // let hist = static_rd::trace::trace(&mut trace);
-        let hist = static_rd::trace::trace(
-            &mut trace,
-            "Scale,0.1,10000"
-        ).0;
+        let hist = static_rd::trace::trace(&mut trace, "Scale,0.1,10000").0;
         let end = Instant::now();
         println!("gemm trace time: {:?}", end - start);
         println!("hist: {}", hist);
