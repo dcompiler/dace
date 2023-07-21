@@ -366,10 +366,10 @@ pub fn _2mm(NI: usize, NJ: usize, NK: usize, NL: usize) -> Rc<Node> {
         vec![ijk[2] as usize, ijk[1] as usize]
     });
     let mut s_ref_c = Node::new_ref("c", vec![NL, NJ], |ijk| {
-        vec![ijk[3] as usize, ijk[1] as usize]
+        vec![ijk[2] as usize, ijk[1] as usize]
     });
     let mut s_ref_d = Node::new_ref("d", vec![NI, NL], |ijk| {
-        vec![ijk[0] as usize, ijk[3] as usize]
+        vec![ijk[0] as usize, ijk[2] as usize]
     });
 
     let mut knk_loop_ref = Node::new_single_loop("k", 0, NK as i32);
