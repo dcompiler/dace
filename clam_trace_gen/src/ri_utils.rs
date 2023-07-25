@@ -16,4 +16,3 @@ pub fn access3addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
 
     (ary_ref.base.unwrap() + offset) * DS / CLS
 }
-

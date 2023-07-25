@@ -1,11 +1,11 @@
 mod ri_utils;
 mod sampling;
 use dace_tests::matmul;
-use std::{env, time::Instant};
-use tracing_subscriber::EnvFilter;
 use dace_tests::polybench::{
     _2mm, _3mm, cholesky, gemm, gramschmidt_trace, lu, mvt, syr2d, syrk, trisolv, trmm_trace,
 };
+use std::{env, time::Instant};
+use tracing_subscriber::EnvFilter;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

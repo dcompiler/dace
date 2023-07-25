@@ -14,8 +14,6 @@ use tracing::debug;
 static COUNTER: AtomicI64 = AtomicI64::new(0);
 static REF_COUNTER: AtomicI64 = AtomicI64::new(0);
 
-
-
 pub fn tracing_ri(code: &mut Rc<Node>) -> Hist {
     let mut hist = Hist::new();
     let mut lat_hash: FxHashMap<String, FxHashMap<u64, i64>> = Default::default();
@@ -23,9 +21,17 @@ pub fn tracing_ri(code: &mut Rc<Node>) -> Hist {
     let mut csv = String::new();
     csv.push_str("Label\tReuse Interval\tTag\tLogical Time\n");
     set_arybase(code);
-    trace_ri(code, &mut lat_hash, &mut ref_id_hash, &[], &mut hist, &mut csv);
+    trace_ri(
+        code,
+        &mut lat_hash,
+        &mut ref_id_hash,
+        &[],
+        &mut hist,
+        &mut csv,
+    );
     let mut file = File::create("output.csv").expect("Unable to create file");
-    file.write_all(csv.as_bytes()).expect("Unable to write data");
+    file.write_all(csv.as_bytes())
+        .expect("Unable to write data");
     hist
 }
 
@@ -50,20 +56,18 @@ fn trace_ri(
                     let id = REF_COUNTER.fetch_add(1, Ordering::Relaxed);
                     entry.insert(id);
                     id
-                },
+                }
             };
 
             match LAT_hash.entry(str_name) {
-                Entry::Occupied(mut entry) => {
-                    match entry.get_mut().entry(addr) {
-                        Entry::Occupied(mut inner) => {
-                            prev_counter = Some(inner.insert(local_counter));
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(local_counter);
-                        }
+                Entry::Occupied(mut entry) => match entry.get_mut().entry(addr) {
+                    Entry::Occupied(mut inner) => {
+                        prev_counter = Some(inner.insert(local_counter));
                     }
-                }
+                    Entry::Vacant(entry) => {
+                        entry.insert(local_counter);
+                    }
+                },
                 Entry::Vacant(entry) => {
                     let mut inner_hash: FxHashMap<u64, i64> = Default::default();
                     inner_hash.insert(addr, local_counter);
@@ -80,7 +84,10 @@ fn trace_ri(
             let reuse_interval = ri.map_or("-1".to_string(), |ri| ri.to_string());
             let addr_str = addr.to_string();
             let local_counter_str = local_counter.to_string();
-            let line = format!("{}\t{}\t{}\t{}\n", ref_label, reuse_interval, addr_str, local_counter_str);
+            let line = format!(
+                "{}\t{}\t{}\t{}\n",
+                ref_label, reuse_interval, addr_str, local_counter_str
+            );
             csv.push_str(&line);
         }
         Stmt::Loop(aloop) => {
@@ -100,10 +107,9 @@ fn trace_ri(
                 panic!("dynamic loop lower bound is not supported")
             }
         }
-        Stmt::Block(blk) => {
-            blk.iter()
-                .for_each(|s| trace_ri(s, LAT_hash, ref_id_hash, ivec.clone(), hist, csv))
-        }
+        Stmt::Block(blk) => blk
+            .iter()
+            .for_each(|s| trace_ri(s, LAT_hash, ref_id_hash, ivec.clone(), hist, csv)),
         Stmt::Branch(stmt) => {
             if (stmt.cond)(ivec) {
                 trace_ri(&stmt.then_body, LAT_hash, ref_id_hash, ivec, hist, csv)
