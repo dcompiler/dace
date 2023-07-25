@@ -4,12 +4,10 @@ use dace::ast::{LoopBound, Node, Stmt};
 use fxhash::FxHashMap;
 use hist::Hist;
 use std::collections::hash_map::Entry;
-use std::collections::{BTreeSet, HashMap};
 use std::fs::File;
 use std::io::prelude::*;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicI64, Ordering};
-use tracing::debug;
 
 static COUNTER: AtomicI64 = AtomicI64::new(0);
 static REF_COUNTER: AtomicI64 = AtomicI64::new(0);
@@ -37,7 +35,7 @@ pub fn tracing_ri(code: &mut Rc<Node>) -> Hist {
 
 fn trace_ri(
     code: &Rc<Node>,
-    LAT_hash: &mut FxHashMap<String, FxHashMap<u64, i64>>,
+    lat_hash: &mut FxHashMap<String, FxHashMap<u64, i64>>,
     ref_id_hash: &mut FxHashMap<String, i64>,
     ivec: &[i32],
     hist: &mut Hist,
@@ -59,7 +57,7 @@ fn trace_ri(
                 }
             };
 
-            match LAT_hash.entry(str_name) {
+            match lat_hash.entry(str_name) {
                 Entry::Occupied(mut entry) => match entry.get_mut().entry(addr) {
                     Entry::Occupied(mut inner) => {
                         prev_counter = Some(inner.insert(local_counter));
@@ -97,7 +95,7 @@ fn trace_ri(
                         aloop.body.iter().for_each(|stmt| {
                             let mut myvec = ivec.to_owned();
                             myvec.push(i);
-                            trace_ri(stmt, LAT_hash, ref_id_hash, &myvec, hist, csv)
+                            trace_ri(stmt, lat_hash, ref_id_hash, &myvec, hist, csv)
                         })
                     })
                 } else {
@@ -109,12 +107,12 @@ fn trace_ri(
         }
         Stmt::Block(blk) => blk
             .iter()
-            .for_each(|s| trace_ri(s, LAT_hash, ref_id_hash, ivec.clone(), hist, csv)),
+            .for_each(|s| trace_ri(s, lat_hash, ref_id_hash, ivec.clone(), hist, csv)),
         Stmt::Branch(stmt) => {
             if (stmt.cond)(ivec) {
-                trace_ri(&stmt.then_body, LAT_hash, ref_id_hash, ivec, hist, csv)
+                trace_ri(&stmt.then_body, lat_hash, ref_id_hash, ivec, hist, csv)
             } else if let Some(else_body) = &stmt.else_body {
-                trace_ri(else_body, LAT_hash, ref_id_hash, ivec, hist, csv)
+                trace_ri(else_body, lat_hash, ref_id_hash, ivec, hist, csv)
             }
         }
     }
