@@ -11,7 +11,8 @@ members = [
     "stack_test_cases",
     "benches/lruvec_bench",
     "benches/stack_alg_sim_bench",
-    "static_ri"
+    "static_ri",
+    "clam_trace_gen"
 ]
 
 [profile.release]
