@@ -83,6 +83,7 @@ pub struct AryRef {
     #[allow(clippy::type_complexity)]
     pub sub: Box<dyn for<'a> Fn(&'a [i32]) -> AryAcc>,
     pub base: Option<usize>,
+    pub ref_id: Option<usize>,
 }
 
 impl std::fmt::Debug for AryRef {
@@ -182,6 +183,7 @@ impl Node {
             dim: ary_dim,
             sub: Box::new(ary_sub),
             base: None,
+            ref_id: None,
         };
         Node::new_node(Stmt::Ref(ref_stmt))
     }
@@ -370,6 +372,7 @@ mod tests {
             dim: vec![10],
             sub: Box::new(|iv| vec![(iv[0] as usize) + 1]),
             base: None,
+            ref_id: None,
         };
         assert_eq!((ar.sub)(&[1]), [2]);
     }

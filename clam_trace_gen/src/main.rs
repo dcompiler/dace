@@ -1,3 +1,5 @@
+#![feature(get_mut_unchecked)]
+
 mod ri_utils;
 mod sampling;
 use dace_tests::matmul;
@@ -61,5 +63,5 @@ fn main() {
     let start = Instant::now();
     let _hist = sampling::tracing_ri(&mut trace);
     let end = Instant::now();
-    println!("gemm trace time: {:?}", end - start);
+    println!("trace time: {:?}", end - start);
 }
