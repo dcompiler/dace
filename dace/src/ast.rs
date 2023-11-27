@@ -62,6 +62,10 @@ pub enum LoopBound {
     Fixed(i32),
     #[allow(clippy::type_complexity)]
     Dynamic(Box<dyn Fn(&[i32]) -> i32>),
+    Affine {
+        a: Vec<i32>,
+        b: i32,
+    }
 }
 
 impl std::fmt::Debug for LoopBound {
@@ -69,6 +73,7 @@ impl std::fmt::Debug for LoopBound {
         match self {
             LoopBound::Fixed(x) => write!(f, "Fixed({x})"),
             LoopBound::Dynamic(_) => write!(f, "Dynamic"),
+            LoopBound::Affine { a, b } => write!(f, "Affine({:?}, {})", a, b),
         }
     }
 }
@@ -109,6 +114,12 @@ where
 {
     fn from(value: F) -> Self {
         LoopBound::Dynamic(Box::new(value))
+    }
+}
+
+impl From<(Vec<i32>, i32)> for  LoopBound {
+    fn from(value: (Vec<i32>, i32)) -> Self {
+        LoopBound::Affine { a: value.0, b: value.1 }
     }
 }
 

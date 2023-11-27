@@ -5,6 +5,7 @@ use list_serializable::ListSerializable;
 
 use stack_alg_sim::LRU;
 
+use std::ptr::null;
 use std::rc::Rc;
 
 fn access2addr(ary_ref: &AryRef, ivec: &[i32]) -> usize {
@@ -41,10 +42,14 @@ fn trace_rec_impl<T: LRU<usize>>(
             let mut i = match &aloop.lb {
                 LoopBound::Fixed(lb) => *lb,
                 LoopBound::Dynamic(lb) => lb(ivec),
+                LoopBound::Affine {a, b} => 
+                    a.iter().copied().zip(ivec.iter().copied()).map(|(x, y)| x * y).sum::<i32>() + *b
             };
             let ub = match &aloop.ub {
                 LoopBound::Fixed(ub) => *ub,
                 LoopBound::Dynamic(ub) => ub(ivec),
+                LoopBound::Affine { a, b } => 
+                    a.iter().copied().zip(ivec.iter().copied()).map(|(x, y)| x * y).sum::<i32>() + *b
             };
 
             while (aloop.test)(i, ub) {
