@@ -65,7 +65,7 @@ pub enum LoopBound {
     Affine {
         a: Vec<i32>,
         b: i32,
-    }
+    },
 }
 
 impl std::fmt::Debug for LoopBound {
@@ -117,9 +117,12 @@ where
     }
 }
 
-impl From<(Vec<i32>, i32)> for  LoopBound {
+impl From<(Vec<i32>, i32)> for LoopBound {
     fn from(value: (Vec<i32>, i32)) -> Self {
-        LoopBound::Affine { a: value.0, b: value.1 }
+        LoopBound::Affine {
+            a: value.0,
+            b: value.1,
+        }
     }
 }
 
