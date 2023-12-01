@@ -34,7 +34,9 @@ impl SplayNode {
         threshold: usize,
     ) -> Result<NonNull<Self>, NonNull<Self>> {
         let mut result = node;
-        while let Some(x) = Self::get_child(result, 1) && result.as_ref().count > threshold {
+        while let Some(x) = Self::get_child(result, 1)
+            && result.as_ref().count > threshold
+        {
             result = x;
         }
         if result.as_ref().count > threshold {

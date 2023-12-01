@@ -48,6 +48,49 @@ pub fn lu(n: usize) -> Rc<Node> {
     i_loop_ref
 }
 
+pub fn lu_affine(n: usize) -> Rc<Node> {
+    let ubound = n as i32;
+    let mut ref_a_ij = Node::new_ref("A", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[1] as usize]
+    });
+    let mut ref_a_ik = Node::new_ref("A", vec![n, n], |ijk| {
+        vec![ijk[0] as usize, ijk[2] as usize]
+    });
+    let mut ref_a_kj = Node::new_ref("A", vec![n, n], |ijk| {
+        vec![ijk[2] as usize, ijk[1] as usize]
+    });
+    let mut ref_a_jj = Node::new_ref("A", vec![n, n], |ijk| {
+        vec![ijk[1] as usize, ijk[1] as usize]
+    });
+
+    let mut k_loop_ref_j = loop_node!("k", 0 => (vec![0, 1, 0], 0));
+    Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ik);
+    Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_kj);
+    Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ij);
+    Node::extend_loop_body(&mut k_loop_ref_j, &mut ref_a_ij);
+
+    let mut j_loop_lower_ref = loop_node!("j", 0 => (vec![1, 0, 0], 0));
+    Node::extend_loop_body(&mut j_loop_lower_ref, &mut k_loop_ref_j);
+    Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_jj);
+    Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_ij);
+    Node::extend_loop_body(&mut j_loop_lower_ref, &mut ref_a_ij);
+
+    let mut k_loop_ref_i = loop_node!("k", 0 => (vec![1, 0, 0], 0));
+    Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ik);
+    Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_kj);
+    Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ij);
+    Node::extend_loop_body(&mut k_loop_ref_i, &mut ref_a_ij);
+
+    let mut j_loop_upper_ref = loop_node!("j", (vec![1, 0, 0], 0) => ubound);
+    Node::extend_loop_body(&mut j_loop_upper_ref, &mut k_loop_ref_i);
+
+    let mut i_loop_ref = Node::new_single_loop("i", 0, ubound);
+    Node::extend_loop_body(&mut i_loop_ref, &mut j_loop_lower_ref);
+    Node::extend_loop_body(&mut i_loop_ref, &mut j_loop_upper_ref);
+
+    i_loop_ref
+}
+
 pub fn trmm_trace(M: usize, N: usize) -> Rc<Node> {
     let mut i_loop_ref = Node::new_single_loop("i", 0, M as i32);
     let mut j_loop_ref = Node::new_single_loop("j", 0, N as i32);
